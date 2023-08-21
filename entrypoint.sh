@@ -105,13 +105,15 @@ set_kafka_cfg_default() {
   if [[ -z "$KAFKA_CFG_PROCESS_ROLES" ]]; then
     export KAFKA_CFG_PROCESS_ROLES="broker,controller"
   fi
-  if [[ -z "$KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP" ]]; then
-    export KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP="CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
-  fi
   if [[ -z "$KAFKA_CFG_INTER_BROKER_LISTENER_NAME" ]]; then
     export KAFKA_CFG_INTER_BROKER_LISTENER_NAME="PLAINTEXT"
   fi
   if [[ -z "$KAFKA_CFG_CONTROLLER_LISTENER_NAMES" ]]; then
+    export KAFKA_CFG_CONTROLLER_LISTENER_NAMES="CONTROLLER"
+  fi
+  if [[ -z "$KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP" ]]; then
+    export KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP="CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+    export KAFKA_CFG_INTER_BROKER_LISTENER_NAME="INTERNAL"
     export KAFKA_CFG_CONTROLLER_LISTENER_NAMES="CONTROLLER"
   fi
   if [[ -z "$KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR" ]]; then
@@ -125,28 +127,46 @@ set_kafka_cfg_default() {
   fi
   ##
   ## KAFKA_CONTROLLER_LISTENER_PORT default value: 19091
-  local ctl_port="${KAFKA_CONTROLLER_LISTENER_PORT-19091}"
+  #local ctl_port="${KAFKA_CONTROLLER_LISTENER_PORT-19091}"
+  if [[ -z "$KAFKA_CONTROLLER_LISTENER_PORT" ]]; then
+    export KAFKA_CONTROLLER_LISTENER_PORT="19091"
+  fi
   ## KAFKA_BROKER_LISTENER_PORT default value: 9092
-  local broker_port="${KAFKA_BROKER_LISTENER_PORT-9092}"
+  #local broker_port="${KAFKA_BROKER_LISTENER_PORT-9092}"
+  if [[ -z "$KAFKA_BROKER_LISTENER_PORT" ]]; then
+    export KAFKA_BROKER_LISTENER_PORT="9092"
+  fi
+  if [[ -z "$KAFKA_BROKER_EXTERNAL_PORT" ]]; then
+    export KAFKA_BROKER_EXTERNAL_PORT="29092"
+  fi
+  local ctl_listener="${KAFKA_CFG_CONTROLLER_LISTENER_NAMES}://0.0.0.0:${KAFKA_CONTROLLER_LISTENER_PORT}"
   if [[ -z "$KAFKA_CFG_LISTENERS" ]]; then
-    export KAFKA_CFG_LISTENERS="CONTROLLER://0.0.0.0:${ctl_port},PLAINTEXT://0.0.0.0:${broker_port}"
+    export KAFKA_CFG_LISTENERS="${ctl_listener},${KAFKA_CFG_INTER_BROKER_LISTENER_NAME}://0.0.0.0:${KAFKA_BROKER_LISTENER_PORT}"
+    if [[ -n "$KAFKA_BROKER_EXTERNAL_HOST" ]]; then
+      local ext_listener="EXTERNAL://0.0.0.0:${KAFKA_BROKER_EXTERNAL_PORT}"
+      export KAFKA_CFG_LISTENERS="${KAFKA_CFG_LISTENERS},${ext_listener}"
+    fi
   fi
   if [[ -z "$KAFKA_CFG_CONTROLLER_QUORUM_VOTERS" ]]; then
-    export KAFKA_CFG_CONTROLLER_QUORUM_VOTERS="${KAFKA_CFG_NODE_ID}@127.0.0.1:${ctl_port}"
+    export KAFKA_CFG_CONTROLLER_QUORUM_VOTERS="${KAFKA_CFG_NODE_ID}@127.0.0.1:${KAFKA_CONTROLLER_LISTENER_PORT}"
   fi
   if [[ -z "$KAFKA_CFG_ADVERTISED_LISTENERS" ]]; then
-    get_default_server_addr
-    if echo "$KAFKA_SERVER_ADDR" | grep -E '\S+' &> /dev/null; then
-      export KAFKA_CFG_ADVERTISED_LISTENERS="PLAINTEXT://${KAFKA_SERVER_ADDR}:${broker_port}"
+    get_internal_host
+    if echo "$KAFKA_BROKER_INTERNAL_HOST" | grep -E '\S+' &> /dev/null; then
+      export KAFKA_CFG_ADVERTISED_LISTENERS="${KAFKA_CFG_INTER_BROKER_LISTENER_NAME}://${KAFKA_BROKER_INTERNAL_HOST}:${KAFKA_BROKER_LISTENER_PORT}"
+      if [[ -n "$KAFKA_BROKER_EXTERNAL_HOST" ]]; then
+        local ext_listener="EXTERNAL://${KAFKA_BROKER_EXTERNAL_HOST}:${KAFKA_BROKER_EXTERNAL_PORT}"
+        export KAFKA_CFG_ADVERTISED_LISTENERS="${KAFKA_CFG_ADVERTISED_LISTENERS},${ext_listener}"
+      fi
     fi
   fi
 }
 
-get_default_server_addr() {
+get_internal_host() {
   if ip route get 1.1.1.1 &> /dev/null ; then
     local ip="$(ip route get 1.1.1.1 | grep -oP 'src \K\S+')"
     if echo "$ip" | grep -E '([0-9]+\.){3}[0-9]+' &> /dev/null; then
-      export KAFKA_SERVER_ADDR="$ip"
+      export KAFKA_BROKER_INTERNAL_HOST="$ip"
     fi
   fi
 }

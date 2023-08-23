@@ -15,7 +15,7 @@ on:
       - v[0-9]*
 
 env:
-  CR_REPO: sir5kong/kafka
+  # CR_REPO: kafkace/kafka
   KAFKA_VERSION: "3.5.0"
 
 jobs:
@@ -44,4 +44,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ env.CR_REPO }}:snapshot
+            ${{ vars.CR_REPO }}:snapshot

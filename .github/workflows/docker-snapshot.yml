@@ -10,7 +10,7 @@ on:
       - entrypoint.sh
       - '.github/workflows/docker*'
     branches:
-      - main
+      - dev
     tags:
       - v[0-9]*
 

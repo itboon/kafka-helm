@@ -2,8 +2,8 @@ name: Docker Publish Snapshot
 
 on:
   workflow_dispatch: ## on button click
-  #schedule:
-  #  - cron: '0 1 * * *'
+  schedule:
+    - cron: '0 1 * * *'
   push:
     paths:
       - Dockerfile
@@ -37,7 +37,7 @@ jobs:
       -
         name: Docker build testing
         uses: docker/build-push-action@v4
-        if: github.ref_name == 'main'
+        if: github.ref_name == 'dev'
         with:
           context: .
           push: true

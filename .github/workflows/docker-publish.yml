@@ -8,6 +8,7 @@ on:
       - entrypoint.sh
       - '.github/workflows/docker*'
     branches:
+      - main
       - stable
     tags:
       - v[0-9]*
@@ -67,14 +68,25 @@ jobs:
       -
         name: Docker build testing
         uses: docker/build-push-action@v4
-        if: github.ref_name == 'stable'
+        if: github.ref_name == 'main'
         with:
           context: .
-          push: false
+          push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ env.CR_REPO }}:pre-${{ steps.vars.outputs.sha_short }}
+            ${{ vars.CR_REPO }}:snapshot
+      -
+        name: Docker build pre
+        uses: docker/build-push-action@v4
+        if: github.ref_name == 'stable'
+        with:
+          context: .
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ vars.CR_REPO }}:pre-${{ steps.vars.outputs.sha_short }}
       -
         name: Build and push
         uses: docker/build-push-action@v4
@@ -89,7 +101,7 @@ jobs:
           build-args: |
             kafka_version=${{ steps.vars.outputs.kafka_version }}
           tags: |
-            ${{ env.CR_REPO }}:${{ steps.vars.outputs.sha_tag }}
-            ${{ env.CR_REPO }}:${{ steps.vars.outputs.latest_or_sha }}
-            ${{ env.CR_REPO }}:v${{ steps.vars.outputs.kafka_version_short }}
-            ${{ env.CR_REPO }}:v${{ steps.vars.outputs.kafka_version }}
+            ${{ vars.CR_REPO }}:${{ steps.vars.outputs.sha_tag }}
+            ${{ vars.CR_REPO }}:${{ steps.vars.outputs.latest_or_sha }}
+            ${{ vars.CR_REPO }}:v${{ steps.vars.outputs.kafka_version_short }}
+            ${{ vars.CR_REPO }}:v${{ steps.vars.outputs.kafka_version }}

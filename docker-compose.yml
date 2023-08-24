@@ -3,17 +3,34 @@ version: "3"
 volumes:
   kafka-data: {}
 
-## broker 默认端口 9092
-## bootstrap-server: ${KAFKA_HOST_IP_ADDR}:9092
+### 内部网络
+## broker 默认内部端口 9092
+## bootstrap-server: kafka:9092
+
+### 外部网络
+## broker 默认外部端口 29092
+## bootstrap-server: ${KAFKA_BROKER_EXTERNAL_HOST}:29092
 
 services:
   kafka:
-    image: sir5kong/kafka:v3.5
+    image: kafkace/kafka:v3.5
     # restart: always
-    network_mode: host
+    ports:
+      - "29092:29092"
     volumes:
       - kafka-data:/opt/kafka/data
     environment:
       - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
-      #- KAFKA_CONTROLLER_LISTENER_PORT=19091
-      #- KAFKA_BROKER_LISTENER_PORT=9092
+      - KAFKA_BROKER_EXTERNAL_HOST=kafka.example.com  ## 对外暴露的主机名或IP地址
+      # - KAFKA_BROKER_EXTERNAL_PORT=29092
+
+  ## Web UI for managing Kafka clusters (optional)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.1
+    # restart: always
+    ports:
+      - "18080:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=kafka-demo
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      #- KAFKA_CLUSTERS_0_READONLY=true

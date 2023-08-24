@@ -10,7 +10,7 @@ on:
       - entrypoint.sh
       - '.github/workflows/docker*'
     branches:
-      - dev
+      - main
     tags:
       - v[0-9]*
 
@@ -37,7 +37,7 @@ jobs:
       -
         name: Docker build testing
         uses: docker/build-push-action@v4
-        if: github.ref_name == 'dev'
+        if: github.ref_name == 'main'
         with:
           context: .
           push: true

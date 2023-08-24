@@ -6,7 +6,7 @@ on:
     workflows: ["Release Charts"]
     types: [completed]
     branches:
-      - main
+      - stable
   #push:
   #  branches:
   #    - gh-pages

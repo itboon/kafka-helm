@@ -1,71 +1,60 @@
-[![CI](https://github.com/sir5kong/kafka-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/sir5kong/kafka-docker/actions/workflows/docker-publish.yml)
+[![CI](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml)
 [![Docker pulls](https://img.shields.io/docker/pulls/sir5kong/kafka)](https://hub.docker.com/r/sir5kong/kafka)
-[![Docker TAG](https://img.shields.io/badge/dynamic/yaml?label=version&url=https%3A%2F%2Fsir5kong.github.io%2Fkafka-docker%2Findex.yaml&query=%24.entries.kafka[0].appVersion)](https://hub.docker.com/r/sir5kong/kafka/tags)
+[![Docker TAG](https://img.shields.io/docker/v/sir5kong/kafka?label=tags&sort=date)](https://hub.docker.com/r/sir5kong/kafka/tags)
 ![Docker Iamge](https://img.shields.io/docker/image-size/sir5kong/kafka)
 
-- [Dockerfile](https://github.com/sir5kong/kafka-docker/blob/main/Dockerfile)
-- [GitHub](https://github.com/sir5kong/kafka-docker)
-- [简体中文](https://github.com/sir5kong/kafka-docker/blob/main/README-zh.md)
+- [Dockerfile](https://github.com/itboon/kafka-docker/blob/main/Dockerfile)
+- [GitHub](https://github.com/itboon/kafka-docker)
+- [简体中文](https://github.com/itboon/kafka-docker/blob/main/README-zh.md)
 
 # Supported tags
 
--	`v3.5.0`, `v3.5`, `latest`
+-	`v3.5.1`, `v3.5`, `latest`
 -	`v3.4.1`, `v3.4`
 -	`v3.3.2`, `v3.3`
 - [More Tags](https://hub.docker.com/r/sir5kong/kafka/tags)
 
-# What is Apache Kafka?
+# 关于 Apache Kafka
 
-Apache Kafka is an open-source distributed event streaming platform used by thousands of companies for high-performance data pipelines, streaming analytics, data integration, and mission-critical applications.
+Apache Kafka 是一个开源分布式事件流平台，已被数千家公司用于高性能数据管道、流分析、数据集成和关键任务应用程序。
 
 - [wikipedia.org/wiki/Apache_Kafka](https://en.wikipedia.org/wiki/Apache_Kafka)
 
-> More than 80% of all Fortune 100 companies trust, and use Kafka. 
+> 超过 80% 的财富 100 强公司信任并使用 Kafka。
 
-# Why use this image
+# 为何选择这个镜像
 
-- Fully compatible with `KRaft`, say goodbye to ZooKeeper.
-- Flexible use of environment variables for configuration.
-- Easy to deploy.
-- Provide [helm chart](https://github.com/sir5kong/kafka-docker/tree/main/charts/kafka), you can quickly deploy high-availability clusters on Kubernetes.
+- 全面兼容 `KRaft`, 不依赖 ZooKeeper
+- 灵活使用环境变量进行配置覆盖
+- 上手简单
+- 提供 `helm chart`，你可以在 Kubernetes 快速部署高可用 Kafka 集群
 
-# How to use this image
+# 使用镜像
 
-[Docker Hub](https://hub.docker.com/r/sir5kong/kafka)
+[Docker Hub](https://hub.docker.com/r/kafkace/kafka)
 
-## Start a `kafka` server instance
+## 启动 `kafka` 服务器
 
-Starting a Kafka instance is simple:
-
-``` shell
-docker run -d --name kafka-server --network host sir5kong/kafka
-```
-
-### Persisting your data
+最简单的方式启动 Kafka:
 
 ``` shell
-docker volume create kafka-data
-docker run -d --name kafka-server \
-  --network host \
-  -v kafka-data:/opt/kafka/data \
-  sir5kong/kafka
+docker run -d --name kafka-server --env KAFKA_BROKER_EXTERNAL_HOST="10.1.1.1" kafkace/kafka:v3.5
 ```
 
-> The default listener port of the broker is `9092`
+- `KAFKA_BROKER_EXTERNAL_HOST`, 对外暴露的主机名或IP地址
+- broker 默认内部端口 `9092`, 默认外部端口 `29092`
 
-### Custom listener port
+### 持久化数据存储
 
 ``` shell
 docker volume create kafka-data
 docker run -d --name kafka-server \
-  --network host \
+  --env KAFKA_BROKER_EXTERNAL_HOST="10.1.1.1" \
   -v kafka-data:/opt/kafka/data \
-  --env KAFKA_CONTROLLER_LISTENER_PORT=29091 \
-  --env KAFKA_BROKER_LISTENER_PORT=29092 \
-  sir5kong/kafka
+  kafkace/kafkav3.5
 ```
 
-### Using Docker Compose
+### 使用 Docker Compose
 
 ``` yaml
 version: "3"
@@ -73,40 +62,47 @@ version: "3"
 volumes:
   kafka-data: {}
 
-## bootstrap-server: ${KAFKA_HOST_IP_ADDR}:9092
+### 内部网络
+## broker 默认内部端口 9092
+## bootstrap-server: kafka:9092
+
+### 外部网络
+## broker 默认外部端口 29092
+## bootstrap-server: ${KAFKA_BROKER_EXTERNAL_HOST}:29092
 
 services:
   kafka:
-    image: sir5kong/kafka:v3.5
-    restart: always
-    network_mode: host
+    image: kafkace/kafka:v3.5
+    # restart: always
+    ports:
+      - "29092:29092"
     volumes:
       - kafka-data:/opt/kafka/data
     environment:
       - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
-      #- KAFKA_CONTROLLER_LISTENER_PORT=19091
-      #- KAFKA_BROKER_LISTENER_PORT=9092
+      - KAFKA_BROKER_EXTERNAL_HOST=kafka.example.com  ## 对外暴露的主机名或IP地址
+      # - KAFKA_BROKER_EXTERNAL_PORT=29092
 
 ```
 
 ## Environment Variables
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 描述 |
 |-----------|-------|------|
-| `KAFKA_CLUSTER_ID`           | Random | Cluster ID |
-| `KAFKA_BROKER_LISTENER_PORT` | `9092` | broker listener port. This will not work if `KAFKA_CFG_LISTENERS` is configured |
-| `KAFKA_CONTROLLER_LISTENER_PORT` | `19091` | controller listener port. This will not work if `KAFKA_CFG_LISTENERS` is configured |
-| `KAFKA_HEAP_OPTS` | `null` | Kafka Java Heap size. For example `-Xmx512m -Xms512m`|
+| `KAFKA_CLUSTER_ID`           | 随机生成 | Cluster ID |
+| `KAFKA_BROKER_LISTENER_PORT` | `9092` | broker 端口号. 如果配置了 `KAFKA_CFG_LISTENERS` 则此项实效 |
+| `KAFKA_CONTROLLER_LISTENER_PORT` | `19091` | controller 端口号. 如果配置了 `KAFKA_CFG_LISTENERS` 则此项实效 |
+| `KAFKA_HEAP_OPTS` | `null` | Kafka Java Heap size. 例如: `-Xmx512m -Xms512m`|
 
 ### Kafka Configurations
 
-Any environment variable beginning with `KAFKA_CFG_` will be mapped to its corresponding Apache Kafka key. 
+所有以 `KAFKA_CFG_` 开头的环境变量都将映射到其相应的 Apache Kafka 配置项。
 
-For example, use `KAFKA_CFG_LISTENERS` in order to set `listeners` or `KAFKA_CFG_ADVERTISED_LISTENERS` in order to configure `advertised.listeners`.
+例如 `KAFKA_CFG_LISTENERS` 对应配置参数 `listeners`，`KAFKA_CFG_ADVERTISED_LISTENERS` 对应配置参数 `advertised.listeners`
 
 Variable examples:
 
-| Variable | Key |
+| 变量 | 配置项 |
 |---------|--------|
 | `KAFKA_CFG_PROCESS_ROLES`     | `process.roles` |
 | `KAFKA_CFG_LISTENERS`         | `listeners` |
@@ -115,25 +111,25 @@ Variable examples:
 | `KAFKA_CFG_CONTROLLER_QUORUM_VOTERS`           | `controller.quorum.voters` |
 | `KAFKA_CFG_LOG_RETENTION_HOURS`                | `log.retention.hours` |
 
-> `log.dir` and `log.dirs` are locked, you cannot overwrite them
+> `log.dir` 和 `log.dirs` 已经被锁定，无法使用环境变量进行覆盖。
 
-## Using helm chart
+## 使用 helm chart
 
 ### Prerequisites
 
 - Kubernetes 1.18+
 - Helm 3.3+
 
-### Get Repository Info
+### 获取 helm 仓库
 
 ``` shell
 helm repo add kafka-repo https://helm-charts.itboon.top/kafka
 helm repo update kafka-repo
 ```
 
-### Deploy a single-node cluster
+### 部署单节点 Kafka 集群
 
-- Turn off persistent storage here, only demonstrate the deployment operation
+- 下面这个案例关闭了持久化存储，仅演示部署效果
 
 ``` shell
 helm upgrade --install kafka \
@@ -144,7 +140,7 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-### One broker and one controller cluster
+### 将 broker 和 controller 独立部署
 
 ``` shell
 helm upgrade --install kafka \
@@ -154,9 +150,9 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-> Persistence storage is used by default.
+> 默认已开启持久化存储。
 
-### Deploy a highly available cluster
+### 部署高可用 Kafka 集群
 
 ``` shell
 helm upgrade --install kafka \
@@ -170,11 +166,11 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-> More values please refer to [examples/values-production.yml](https://github.com/sir5kong/kafka-docker/raw/main/examples/values-production.yml)
+> 高可用集群更多配置项请参考 [examples/values-production.yml](https://github.com/itboon/kafka-docker/raw/main/examples/values-production.yml)
 
-### Kubernetes external access
+### Kubernetes 集群外访问
 
-Enable Kubernetes external cluster access to Kafka brokers.
+启用 Kubernetes 集群外访问：
 
 ``` shell
 helm upgrade --install kafka \
@@ -186,4 +182,4 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-Configure your DNS record to complete this deployment.
+上面部署成功后请完成域名解析配置。

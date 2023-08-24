@@ -71,7 +71,7 @@ jobs:
         if: github.ref_name == 'main'
         with:
           context: .
-          push: false
+          push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
@@ -82,7 +82,7 @@ jobs:
         if: github.ref_name == 'stable'
         with:
           context: .
-          push: false
+          push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |

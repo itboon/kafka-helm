@@ -1,22 +1,22 @@
-# helm chart 部署 kafka
+# Kafka helm chart
 
 ## Prerequisites
 
 - Kubernetes 1.18+
 - Helm 3.3+
 
-## 添加 helm 仓库
+## Get Repository Info
 
 ``` shell
 helm repo add kafka-repo https://helm-charts.itboon.top/kafka
 helm repo update kafka-repo
 ```
 
-## helm 部署
+## Deploy Kafka
 
-### 部署单节点集群
+### Deploy a single-node cluster
 
-- 下面这个案例关闭了持久化存储，仅演示部署效果
+- Turn off persistent storage here, only demonstrate the deployment operation
 
 ``` shell
 helm upgrade --install kafka \
@@ -27,7 +27,7 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-### Controller 与 Broker 分离部署
+### One broker and one controller cluster
 
 ``` shell
 helm upgrade --install kafka \
@@ -37,9 +37,9 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-> 默认已开启持久化存储。
+> Persistence storage is used by default.
 
-### 部署高可用集群
+### Deploy a highly available cluster
 
 ``` shell
 helm upgrade --install kafka \
@@ -53,11 +53,11 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-> 更多 values 请参考 [examples/values-production.yml](https://github.com/itboon/kafka-docker/raw/main/examples/values-production.yml)
+> More values please refer to [examples/values-production.yml](https://github.com/sir5kong/kafka-docker/raw/main/examples/values-production.yml)
 
-### LoadBalancer 外部暴露
+### Using LoadBalancer
 
-开启 Kubernetes 集群外访问：
+Enable Kubernetes external cluster access to Kafka brokers.
 
 ``` shell
 helm upgrade --install kafka \
@@ -69,7 +69,15 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-上面部署成功后请完成域名解析配置。
+Add domain name resolution to complete this deployment
+
+## combined mode
+
+- If process.roles is set to broker, the server acts as a broker.
+- If process.roles is set to controller, the server acts as a controller.
+- If process.roles is set to broker,controller, the server acts as both a broker and a controller.
+
+> Kafka servers that act as both brokers and controllers are referred to as "combined" servers. Combined servers are simpler to operate for small use cases like a development environment. The key disadvantage is that the controller will be less isolated from the rest of the system. For example, it is not possible to roll or scale the controllers separately from the brokers in combined mode. Combined mode is not recommended in critical deployment environments.
 
 ### Chart Values
 
@@ -88,7 +96,18 @@ broker:
     size: 20Gi
 ```
 
-## 集群外访问
+## Cluster ID 
+
+In earlier versions, Kafka will automatically initialize the data directory, the current version needs to provide a `Cluster ID` and manually initialize the data directory:
+
+``` shell
+KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
+bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c config/kraft/server.properties
+```
+
+All nodes in a cluster need to use the same `Cluster ID`. In order to solve this problem, this project will automatically generate a `Cluster ID` and save it to `Secret` when it is deployed for the first time.
+
+## External Access
 
 In order to connect to the Kafka server outside the cluster, each Broker must be exposed and `advertised.listeners` must be correctly configured.
 
@@ -96,12 +115,12 @@ There are two ways to expose, `NodePort` and `LoadBalancer`, each broker node ne
 
 ### Chart Values
 
-| Key | Type | 默认值 | 描述 |
+| Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| broker.external.enabled | bool | `false` | 是否开启集群外访问 |
+| broker.external.enabled | bool | `false` | Whether to enable external access |
 | broker.external.service.type | string | `NodePort` | `NodePort` or `LoadBalancer` |
 | broker.external.service.annotations | object | `{}` | External serivce annotations |
-| broker.external.nodePorts | list | `[]` | NodePort 模式，至少提供一个端口号，如果端口数量少于 broker 数量，则自增 |
+| broker.external.nodePorts | list | `[]` | Provide at least one port number, if the count of ports is less than the count of broker nodes, it will be automatically incremented |
 | broker.external.domainSuffix | string | `kafka.example.com` | If you use `LoadBalancer` for external access, you must use a domain name. The external domain name corresponding to the broker is `POD_NAME` + `domain name suffix`, such as `kafka-broker-0.kafka.example.com`. After the deployment, you need to complete the domain name resolution operation |
 
 ``` yaml

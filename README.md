@@ -1,74 +1,72 @@
 [![CI](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml)
-[![Docker pulls](https://img.shields.io/docker/pulls/sir5kong/kafka)](https://hub.docker.com/r/sir5kong/kafka)
-[![Docker TAG](https://img.shields.io/docker/v/sir5kong/kafka?label=tags&sort=date)](https://hub.docker.com/r/sir5kong/kafka/tags)
-![Docker Iamge](https://img.shields.io/docker/image-size/sir5kong/kafka)
+[![Docker pulls](https://img.shields.io/docker/pulls/kafkace/kafka)](https://hub.docker.com/r/kafkace/kafka)
+[![Docker TAG](https://img.shields.io/github/v/release/itboon/kafka-docker)](https://hub.docker.com/r/kafkace/kafka/tags)
+![Docker Iamge](https://img.shields.io/docker/image-size/kafkace/kafka)
 
 - [Dockerfile](https://github.com/itboon/kafka-docker/blob/main/Dockerfile)
 - [GitHub](https://github.com/itboon/kafka-docker)
-- [简体中文](https://github.com/itboon/kafka-docker/blob/main/README-zh.md)
+- [Docker Hub](https://hub.docker.com/r/kafkace/kafka)
 
-# Supported tags
+## 关于 Apache Kafka
 
--	`v3.5.1`, `v3.5`, `latest`
--	`v3.4.1`, `v3.4`
--	`v3.3.2`, `v3.3`
-- [More Tags](https://hub.docker.com/r/sir5kong/kafka/tags)
-
-# 关于 Apache Kafka
-
-Apache Kafka 是一个开源分布式事件流平台，已被数千家公司用于高性能数据管道、流分析、数据集成和关键任务应用程序。
-
-- [wikipedia.org/wiki/Apache_Kafka](https://en.wikipedia.org/wiki/Apache_Kafka)
+[Apache Kafka](https://kafka.apache.org/) 是一个开源分布式事件流平台，已被数千家公司用于高性能数据管道、流分析、数据集成和关键任务应用程序。
 
 > 超过 80% 的财富 100 强公司信任并使用 Kafka。
 
-# 为何选择这个镜像
+## 为何选择这个镜像
 
 - 全面兼容 `KRaft`, 不依赖 ZooKeeper
 - 灵活使用环境变量进行配置覆盖
 - 上手简单
 - 提供 `helm chart`，你可以在 Kubernetes 快速部署高可用 Kafka 集群
 
-# 使用镜像
-
-[Docker Hub](https://hub.docker.com/r/kafkace/kafka)
-
-## 启动 `kafka` 服务器
+## 启动 kafka 服务器
 
 最简单的方式启动 Kafka:
 
 ``` shell
-docker run -d --name kafka-server --env KAFKA_BROKER_EXTERNAL_HOST="10.1.1.1" kafkace/kafka:v3.5
+docker run -d --name demo-kafka-server kafkace/kafka:v3.5
 ```
 
-- `KAFKA_BROKER_EXTERNAL_HOST`, 对外暴露的主机名或IP地址
-- broker 默认内部端口 `9092`, 默认外部端口 `29092`
+### 端口暴露
+
+跨主机访问需要开启外部网络：
+
+``` shell
+docker run -d --name demo-kafka-server \
+  -p 29092:29092 \
+  --env KAFKA_BROKER_EXTERNAL_HOST="172.16.1.149" \
+  --env KAFKA_BROKER_EXTERNAL_PORT="29092" \
+  kafkace/kafka:v3.5
+```
+
+- broker 默认内部端口 `9092`
+- `KAFKA_BROKER_EXTERNAL_HOST`, 对外暴露的主机名，可以是域名或IP地址
+- `KAFKA_BROKER_EXTERNAL_PORT`, 对外暴露的端口号，不能跟内部端口重复
+
+> 在没有提供 `KAFKA_BROKER_EXTERNAL_HOST` 的情况下，仅通过 docker 对外暴露端口是无效的。
 
 ### 持久化数据存储
 
 ``` shell
 docker volume create kafka-data
-docker run -d --name kafka-server \
-  --env KAFKA_BROKER_EXTERNAL_HOST="10.1.1.1" \
+
+docker run -d --name demo-kafka-server \
+  -p 29092:29092 \
   -v kafka-data:/opt/kafka/data \
-  kafkace/kafkav3.5
+  --env KAFKA_BROKER_EXTERNAL_HOST="172.16.1.149" \
+  --env KAFKA_BROKER_EXTERNAL_PORT="29092" \
+  kafkace/kafka:v3.5
+
 ```
 
-### 使用 Docker Compose
+## Docker Compose 启动 Kafka
 
 ``` yaml
 version: "3"
 
 volumes:
   kafka-data: {}
-
-### 内部网络
-## broker 默认内部端口 9092
-## bootstrap-server: kafka:9092
-
-### 外部网络
-## broker 默认外部端口 29092
-## bootstrap-server: ${KAFKA_BROKER_EXTERNAL_HOST}:29092
 
 services:
   kafka:
@@ -80,8 +78,26 @@ services:
       - kafka-data:/opt/kafka/data
     environment:
       - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
-      - KAFKA_BROKER_EXTERNAL_HOST=kafka.example.com  ## 对外暴露的主机名或IP地址
-      # - KAFKA_BROKER_EXTERNAL_PORT=29092
+      - KAFKA_BROKER_EXTERNAL_HOST=kafka.example.com   ## 对外暴露的主机名，可以是域名或IP地址
+      - KAFKA_BROKER_EXTERNAL_PORT=29092
+
+  ## kafka web 管理 (可选)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.1
+    # restart: always
+    ports:
+      - "18080:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=demo-kafka-server
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+
+### 内部网络
+## broker 默认内部端口 9092
+## bootstrap-server: kafka:9092
+
+### 外部网络
+## broker 默认外部端口 29092
+## bootstrap-server: ${KAFKA_BROKER_EXTERNAL_HOST}:29092
 
 ```
 
@@ -90,8 +106,10 @@ services:
 | 变量 | 默认值 | 描述 |
 |-----------|-------|------|
 | `KAFKA_CLUSTER_ID`           | 随机生成 | Cluster ID |
-| `KAFKA_BROKER_LISTENER_PORT` | `9092` | broker 端口号. 如果配置了 `KAFKA_CFG_LISTENERS` 则此项实效 |
-| `KAFKA_CONTROLLER_LISTENER_PORT` | `19091` | controller 端口号. 如果配置了 `KAFKA_CFG_LISTENERS` 则此项实效 |
+| `KAFKA_BROKER_LISTENER_PORT` | `9092` | broker 端口号，如果配置了 `KAFKA_CFG_LISTENERS` 则此项失效 |
+| `KAFKA_CONTROLLER_LISTENER_PORT` | `19091` | controller 端口号，如果配置了 `KAFKA_CFG_LISTENERS` 则此项失效 |
+| `KAFKA_BROKER_EXTERNAL_HOST` | null | 对外暴露的主机名，可以是域名或IP地址，如果配置了 `KAFKA_CFG_ADVERTISED_LISTENERS` 则此项失效 |
+| `KAFKA_BROKER_EXTERNAL_PORT` | `29092` | 对外暴露的端口号，不能跟内部端口重复，如果配置了 `KAFKA_CFG_ADVERTISED_LISTENERS` 则此项失效 |
 | `KAFKA_HEAP_OPTS` | `null` | Kafka Java Heap size. 例如: `-Xmx512m -Xms512m`|
 
 ### Kafka Configurations
@@ -113,7 +131,7 @@ Variable examples:
 
 > `log.dir` 和 `log.dirs` 已经被锁定，无法使用环境变量进行覆盖。
 
-## 使用 helm chart
+## helm chart 部署
 
 ### Prerequisites
 

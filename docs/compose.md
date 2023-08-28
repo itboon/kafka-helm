@@ -41,11 +41,11 @@ services:
 
 ```
 
-传入 `KAFKA_BROKER_EXTERNAL_HOST` 变量后，启动脚本会修改相关网络配置，例如 `listeners`、`advertised.listeners`、`listener.security.protocol.map`，需要自定义
+传入 `KAFKA_BROKER_EXTERNAL_HOST` 变量后，启动脚本会修改相关网络配置，例如 `listeners`、`advertised.listeners`、`listener.security.protocol.map`，详情请参考[环境变量和配置](./env)
 
-## 外部网络详细配置
+## 高级网络配置
 
-下面这个案例跟上文的案例是等效的。
+下面这个案例列出了详细的 Kafka 网络配置，部署后的效果与上文的案例是等效的。
 
 ``` yaml
 version: "3"

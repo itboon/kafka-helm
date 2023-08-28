@@ -21,5 +21,5 @@
 
 ## 下一步
 
-- [Docker 启动 Kafka](/docker)
-- [Helm 部署 kafka](/helm)
+- [Docker 启动 Kafka](./docker)
+- [Helm 部署 kafka](./helm)

@@ -74,8 +74,8 @@ extra:
 
 # Page tree
 nav:
+  - Welcome: index.md
   - Docker:
-    - Welcome: index.md
     - Docker: docker.md
     - Docker Compose: compose.md
   - Helm: helm.md

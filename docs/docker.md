@@ -42,5 +42,5 @@ docker run -d --name demo-kafka-server \
 
 ## 下一步
 
-- [环境变量和配置](/env)
-- [Docker Compose 启动 Kafka](/compose)
+- [环境变量和配置](./env)
+- [Docker Compose 启动 Kafka](./compose)

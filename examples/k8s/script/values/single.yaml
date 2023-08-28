@@ -1,0 +1,3 @@
+broker:
+  combinedMode:
+    enabled: true

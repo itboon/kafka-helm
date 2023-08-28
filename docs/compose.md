@@ -41,7 +41,7 @@ services:
 
 ```
 
-传入 `KAFKA_BROKER_EXTERNAL_HOST` 变量后，启动脚本会自动创建对外暴露的网络配置，例如 `listeners`、`advertised.listeners`、`listener.security.protocol.map`
+传入 `KAFKA_BROKER_EXTERNAL_HOST` 变量后，启动脚本会修改相关网络配置，例如 `listeners`、`advertised.listeners`、`listener.security.protocol.map`，需要自定义
 
 ## 外部网络详细配置
 

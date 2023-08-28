@@ -24,16 +24,23 @@ docker run -d --name demo-kafka-server \
 
 > 在没有提供 `KAFKA_BROKER_EXTERNAL_HOST` 的情况下，仅通过 docker 对外暴露端口是无效的。
 
-## 持久化数据存储
+## 持久化
+
+数据存储路径 `/opt/kafka/data`，像下面这个案例一样挂载一下:
 
 ``` shell
-docker volume create kafka-data
+docker volume create demo-kafka-data
 
 docker run -d --name demo-kafka-server \
   -p 29092:29092 \
-  -v kafka-data:/opt/kafka/data \
+  -v demo-kafka-data:/opt/kafka/data \
   --env KAFKA_BROKER_EXTERNAL_HOST="172.16.1.149" \
   --env KAFKA_BROKER_EXTERNAL_PORT="29092" \
   kafkace/kafka:v3.5
 
 ```
+
+## 下一步
+
+- [环境变量和配置](/env)
+- [Docker Compose 启动 Kafka](/compose)

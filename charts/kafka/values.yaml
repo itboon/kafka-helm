@@ -6,9 +6,9 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: sir5kong/kafka
+  repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.5.0
+  tag: v3.5.1
 
 imagePullSecrets: []
 

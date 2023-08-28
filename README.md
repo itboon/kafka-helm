@@ -9,9 +9,7 @@
 
 ## 关于 Apache Kafka
 
-Apache Kafka 是一个开源分布式事件流平台，已被数千家公司用于高性能数据管道、流分析、数据集成和关键任务应用程序。
-
-- [wikipedia.org/wiki/Apache_Kafka](https://en.wikipedia.org/wiki/Apache_Kafka)
+[Apache Kafka](https://kafka.apache.org/) 是一个开源分布式事件流平台，已被数千家公司用于高性能数据管道、流分析、数据集成和关键任务应用程序。
 
 > 超过 80% 的财富 100 强公司信任并使用 Kafka。
 

@@ -41,7 +41,7 @@ services:
 
 ```
 
-传入 `KAFKA_BROKER_EXTERNAL_HOST` 变量后，启动脚本会修改相关网络配置，例如 `listeners`、`advertised.listeners`、`listener.security.protocol.map`，详情请参考[环境变量和配置](./env)
+传入 `KAFKA_BROKER_EXTERNAL_HOST` 变量后，启动脚本会修改相关网络配置，例如 `listeners`、`advertised.listeners`、`listener.security.protocol.map`，详情请参考[环境变量和配置](../env)
 
 ## 高级网络配置
 

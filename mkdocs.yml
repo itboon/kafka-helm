@@ -1,9 +1,9 @@
 site_name: Install Apache Kafka with Docker or Helm
-# site_url: 'https://github.com/sir5kong/kafka-docker'
+# site_url: 'https://github.com/itboon/kafka-docker'
 
 ## Repository
-repo_name: 'sir5kong/kafka-docker'
-repo_url: 'https://github.com/sir5kong/kafka-docker'
+repo_name: 'itboon/kafka-docker'
+repo_url: 'https://github.com/itboon/kafka-docker'
 
 # Extensions
 markdown_extensions:
@@ -74,8 +74,8 @@ extra:
 
 # Page tree
 nav:
-  - Docker Image: README.md
+  - Docker:
+    - Welcome: index.md
+    - Docker: docker.md
+    - Docker Compose: compose.md
   - Helm: helm.md
-  - External Network: external.md
-  - About KRaft: kraft.md
-  - '简体中文': README-zh.md

@@ -31,4 +31,4 @@ jobs:
           curl -o $ALIOSS -L $DL_URL_OSS
           chmod a+rx $ALIOSS
           $ALIOSS config -e $OSS_EP -i $OSS_KEY_ID -k $OSS_KEY_SECRET
-          $ALIOSS cp -rf ./ "oss://${OSS_BUCKET}/kafka/"
+          $ALIOSS cp -rf ./ "oss://${OSS_BUCKET}/p/kafka/"

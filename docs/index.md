@@ -2,8 +2,7 @@
 
 [![CI](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml)
 [![Docker pulls](https://img.shields.io/docker/pulls/kafkace/kafka)](https://hub.docker.com/r/kafkace/kafka)
-[![Docker TAG](https://img.shields.io/github/v/release/sir5kong/kafka-docker
-)](https://hub.docker.com/r/kafkace/kafka/tags)
+[![Docker TAG](https://img.shields.io/github/v/release/itboon/kafka-docker)](https://hub.docker.com/r/kafkace/kafka/tags)
 ![Docker Iamge](https://img.shields.io/docker/image-size/kafkace/kafka)
 
 - [Dockerfile](https://github.com/itboon/kafka-docker/blob/main/Dockerfile)

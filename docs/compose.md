@@ -1,4 +1,4 @@
-# 使用 Docker Compose 启动 Kafka
+# Docker Compose 启动 Kafka
 
 ``` yaml
 version: "3"

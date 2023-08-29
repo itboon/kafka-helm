@@ -23,3 +23,32 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOOGLE_ANALYTICS_KEY: ${{ vars.GOOGLE_ANALYTICS_KEY }}
+  
+  oss-sync:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+        with:
+          # fetch-depth: 0
+          ref: 'gh-pages'
+      - 
+        name: Upload to OSS
+        if: ${{ vars.OSS_MIRROR_ENABLED == 'true' }}
+        shell: bash
+        env:
+          DL_URL_OSS: "https://gosspublic.alicdn.com/ossutil/1.7.1/ossutil64"
+          OSS_KEY_ID: "${{ secrets.OSS_KEY_ID }}"
+          OSS_KEY_SECRET: "${{ secrets.OSS_KEY_SECRET }}"
+          OSS_EP: "${{ vars.OSS_EP }}"
+          OSS_BUCKET: "${{ vars.PAGES_OSS_BUCKET }}"
+          MIRROR_HOST: "${{ vars.MIRROR_HOST }}"
+        run: |
+          export ALIOSS="${HOME}/bin/ossutil"
+          mkdir -p $(dirname $ALIOSS)
+          curl -o $ALIOSS -L $DL_URL_OSS
+          chmod a+rx $ALIOSS
+          $ALIOSS config -e $OSS_EP -i $OSS_KEY_ID -k $OSS_KEY_SECRET
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          $ALIOSS cp -rf ./ "oss://${OSS_BUCKET}/${repo_name}/"

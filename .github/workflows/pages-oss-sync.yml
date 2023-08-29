@@ -22,8 +22,7 @@ jobs:
           OSS_KEY_ID: "${{ secrets.OSS_KEY_ID }}"
           OSS_KEY_SECRET: "${{ secrets.OSS_KEY_SECRET }}"
           OSS_EP: "${{ vars.OSS_EP }}"
-          OSS_BUCKET: "${{ vars.OSS_BUCKET }}"
-          CHART_INDEX_URL: "${{ vars.CHART_INDEX_URL }}"
+          OSS_BUCKET: "${{ vars.PAGES_OSS_BUCKET }}"
           MIRROR_HOST: "${{ vars.MIRROR_HOST }}"
         run: |
           export ALIOSS="${HOME}/bin/ossutil"
@@ -31,4 +30,5 @@ jobs:
           curl -o $ALIOSS -L $DL_URL_OSS
           chmod a+rx $ALIOSS
           $ALIOSS config -e $OSS_EP -i $OSS_KEY_ID -k $OSS_KEY_SECRET
-          $ALIOSS cp -rf ./ "oss://${OSS_BUCKET}/p/kafka/"
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          $ALIOSS cp -rf ./ "oss://${OSS_BUCKET}/${repo_name}/"

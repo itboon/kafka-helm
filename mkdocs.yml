@@ -1,4 +1,4 @@
-site_name: Install Apache Kafka with Docker or Helm
+site_name: Apache Kafka 容器化部署
 # site_url: 'https://github.com/itboon/kafka-docker'
 
 ## Repository
@@ -74,8 +74,8 @@ extra:
 
 # Page tree
 nav:
+  - Welcome: index.md
   - Docker:
-    - Welcome: index.md
     - Docker: docker.md
     - Docker Compose: compose.md
   - Helm: helm.md

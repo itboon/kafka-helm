@@ -26,7 +26,7 @@ docker run -d --name demo-kafka-server \
 
 ## 持久化
 
-数据存储路径 `/opt/kafka/data`，像下面这个案例一样挂载一下:
+数据存储路径 `/opt/kafka/data`，挂载数据卷:
 
 ``` shell
 docker volume create demo-kafka-data
@@ -42,5 +42,5 @@ docker run -d --name demo-kafka-server \
 
 ## 下一步
 
-- [环境变量和配置](/env)
-- [Docker Compose 启动 Kafka](/compose)
+- [Docker Compose 启动 Kafka](../compose)
+- [环境变量和配置](../env)

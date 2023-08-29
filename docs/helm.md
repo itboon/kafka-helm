@@ -1,4 +1,4 @@
-# helm chart 部署 kafka
+# Helm 部署 Kafka
 
 ## Prerequisites
 

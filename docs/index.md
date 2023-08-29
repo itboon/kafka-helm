@@ -1,10 +1,5 @@
 # Welcome
 
-[![CI](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml)
-[![Docker pulls](https://img.shields.io/docker/pulls/kafkace/kafka)](https://hub.docker.com/r/kafkace/kafka)
-![Docker Iamge](https://img.shields.io/docker/image-size/kafkace/kafka)
-
-- [Dockerfile](https://github.com/itboon/kafka-docker/blob/main/Dockerfile)
 - [GitHub](https://github.com/itboon/kafka-docker)
 - [Docker Hub](https://hub.docker.com/r/kafkace/kafka)
 
@@ -21,5 +16,5 @@
 
 ## 下一步
 
-- [Docker 启动 Kafka](/docker)
-- [Helm 部署 kafka](/helm)
+- [Docker 启动 Kafka](./docker)
+- [Helm 部署 kafka](./helm)

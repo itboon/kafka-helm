@@ -1,0 +1,5 @@
+broker:
+  combinedMode:
+    enabled: true
+  persistence:
+    enabled: false

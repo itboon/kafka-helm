@@ -2,6 +2,8 @@ name: Docker Publish
 
 on:
   workflow_dispatch: ## on button click
+  schedule:
+    - cron: '0 1/11 * * *'
   push:
     paths:
       - Dockerfile

@@ -13,7 +13,7 @@ services:
       - kafka-data:/opt/kafka/data
     environment:
       - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
-      ## 将下面 ${KAFKA_BROKER_EXTERNAL_HOST} 替换成你自己的外部主机名，可以是域名或端口
+      ## 将下面 ${KAFKA_BROKER_EXTERNAL_HOST} 替换成你自己的外部主机名，可以是域名或IP地址
       ## - KAFKA_BROKER_EXTERNAL_HOST=kafka.example.com
       - KAFKA_BROKER_EXTERNAL_HOST=${KAFKA_BROKER_EXTERNAL_HOST}
       # - KAFKA_BROKER_EXTERNAL_PORT=29092

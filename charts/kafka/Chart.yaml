@@ -1,14 +1,14 @@
 apiVersion: v2
 name: kafka
-description:  Helm chart for Apache Kafka.
+description: Helm chart for Apache Kafka.
 type: application
 
-version: 13.2.0
+version: 13.2.1
 appVersion: v3.5.1
 
 maintainers:
   - name: sir5kong
-    url: "https://github.com/sir5kong/kafka-docker"
+    url: "https://github.com/itboon/kafka-docker"
 
 keywords:
   - kafka

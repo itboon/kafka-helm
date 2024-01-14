@@ -1,5 +1,7 @@
 # Kafka helm chart
 
+https://github.com/itboon/kafka-docker
+
 ## Prerequisites
 
 - Kubernetes 1.18+

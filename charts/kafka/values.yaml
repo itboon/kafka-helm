@@ -34,7 +34,7 @@ containerPort:
 
 broker:
   combinedMode:
-    enabled: false
+    enabled: true
   replicaCount: 1
   terminationGracePeriodSeconds: 60
   heapOpts: "-Xms1024m -Xmx1024m"

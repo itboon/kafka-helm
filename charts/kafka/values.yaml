@@ -74,6 +74,9 @@ broker:
   nodeSelector: {}
   tolerations: []
 
+  ## broker.podAnnotations
+  podAnnotations: {}
+
   ## broker.antiAffinity
   antiAffinity: soft
   antiAffinityTopologyKey: kubernetes.io/hostname
@@ -103,7 +106,11 @@ broker:
       port: 9095
     nodePorts:
       - 31050
-    domainSuffix: "kafka.example.com"
+    domainSuffix: ".kafka.example.com"
+    ## broker.external.hosts - 对外暴露的主机名 (域名或IP)，优先级高于 domainSuffix
+    # hosts:
+    #   - broker-01.kafka.example.com
+    
 
 controller:
   enabled: true
@@ -146,6 +153,9 @@ controller:
   ## controller.nodeSelector
   nodeSelector: {}
   tolerations: []
+
+  ## controller.podAnnotations
+  podAnnotations: {}
 
   ## controller.antiAffinity
   antiAffinity: soft

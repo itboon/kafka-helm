@@ -198,6 +198,8 @@ KAFKA External BOOTSTRAPSERVERS
 {{- $brokerFullname := include "kafka.broker.fullname" . -}}
 {{- $servicePort := .Values.broker.external.service.port | int -}}
 {{- $domain := .Values.broker.external.domainSuffix -}}
+{{- $hosts := .Values.broker.external.hosts -}}
+{{- $indexLastHosts:= (sub (len $hosts) 1) | int -}}
 {{- $replicaCount := .Values.broker.replicaCount | int -}}
   {{- $nodePorts := list -}}
   {{- $nodePortServers := list -}}
@@ -205,7 +207,11 @@ KAFKA External BOOTSTRAPSERVERS
     {{- $nodePorts = printf "%s" . | append $nodePorts -}}
   {{- end -}}
   {{- range $i := until $replicaCount -}}
-    {{- $servers = printf "%s-%d.%s:%d" $brokerFullname $i $domain $servicePort | append $servers -}}
+    {{- if le $i $indexLastHosts -}}
+      {{- $servers = printf "%s:%d" (index $hosts $i) $servicePort | append $servers -}}
+    {{- else -}}
+      {{- $servers = printf "%s-%d%s:%d" $brokerFullname $i $domain $servicePort | append $servers -}}
+    {{- end -}}
     {{- $nodePortServers = printf "KUBERNETES_NODE_IP_%d:%d" $i (index $nodePorts $i | int) | append $nodePortServers -}}
   {{- end -}}
 {{- if eq .Values.broker.external.service.type "NodePort" -}}

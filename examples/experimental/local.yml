@@ -27,7 +27,8 @@ broker:
 
 controller:
   replicaCount: 0
-
+  persistence:
+    enabled: false
 
 ui:
   enabled: true

@@ -25,9 +25,14 @@ spec:
     type: {{ ( $thisValues.updateStrategy | default dict ).type | default "RollingUpdate" }}
   template:
     metadata:
-      {{- with $thisValues.podAnnotations }}
+      {{- if or $.Values.podAnnotations $thisValues.podAnnotations }}
       annotations:
+        {{- with $.Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with $thisValues.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
       labels:
         {{- include "kafka.selectorLabels" . | nindent 8 }}
@@ -44,6 +49,14 @@ spec:
       {{- with $thisValues.podSecurityContext }}
       securityContext:
         {{- toYaml $thisValues.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- if or $.Values.nodeSelector $thisValues.nodeSelector }}
+      nodeSelector:
+        {{- if $thisValues.nodeSelector }}
+        {{- toYaml $thisValues.nodeSelector | nindent 8 }}
+        {{- else if $.Values.nodeSelector }}
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
+        {{- end }}
       {{- end }}
       {{- if or (eq $thisValues.antiAffinity "hard") (eq $thisValues.antiAffinity "soft") $thisValues.nodeAffinity }}
       affinity:

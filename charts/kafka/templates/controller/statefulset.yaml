@@ -1,4 +1,4 @@
-{{- if not .Values.broker.combinedMode.enabled }}
+{{- if (eq (include "kafka.combinedMode" .) "false") }}
 {{- $thisValues := .Values.controller }}
 {{- $thisFullName := include "kafka.controller.fullname" . }}
 {{- $controllerFullName := include "kafka.controller.fullname" . }}

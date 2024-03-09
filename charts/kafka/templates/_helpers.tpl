@@ -117,3 +117,14 @@ kafka clusterId SecretName
 {{- define "kafka.clusterId.SecretName" -}}
 {{- printf "%s-cluster-id" (include "kafka.fullname" .) }}
 {{- end }}
+
+{{/*
+kafka combinedMode
+*/}}
+{{- define "kafka.combinedMode" -}}
+{{- if or (eq .Values.controller.replicas 0) .Values.broker.combinedMode.enabled -}}
+{{- print "true" -}}
+{{- else -}}
+{{- print "false" -}}
+{{- end -}}
+{{- end -}}

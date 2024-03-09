@@ -5,10 +5,14 @@
 nameOverride: "kafka"
 fullnameOverride: ""
 
+# It is recommended to use a random cluster id for each cluster.
+# cat /proc/sys/kernel/random/uuid | base64 | cut -b 1-22
+clusterId: "NDlmZWU5YTItYThjNi00Zj"
+
 image:
   repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.5.1
+  tag: v3.6.1
 
 imagePullSecrets: []
 
@@ -219,6 +223,11 @@ ui:
       port: http
     initialDelaySeconds: 60
     failureThreshold: 5
+  
+  ## ui.service
+  service:
+    annotations: {}
+    type: ClusterIP
 
   ## ui.ingress
   ingress:

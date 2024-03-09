@@ -6,13 +6,14 @@ KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
 {{- $controllerReplicaCount := int .Values.controller.replicaCount }}
 {{- $controllerFullName := include "kafka.controller.fullname" . }}
 {{- $serviceName := include "kafka.controller.headless.serviceName" . }}
-{{- if .Values.broker.combinedMode.enabled }}
+{{- if (eq (include "kafka.combinedMode" .) "true") }}
   {{- $controllerReplicaCount = int .Values.broker.replicaCount }}
   {{- $controllerFullName = include "kafka.broker.fullname" . }}
   {{- $serviceName = include "kafka.broker.headless.serviceName" . }}
 {{- end }}
+{{- $namespace := .Release.Namespace -}}
 {{- range $i := until $controllerReplicaCount }}
-  {{- if gt $i 0 }}{{ printf "," }}{{ end }}{{ printf "%d@%s-%d.%s:%d" $i $controllerFullName $i $serviceName $controllerPort }}
+  {{- if gt $i 0 }}{{ printf "," }}{{ end }}{{ printf "%d@%s-%d.%s.%s.svc:%d" $i $controllerFullName $i $serviceName $namespace $controllerPort }}
 {{- end }}
 {{- end }}
 
@@ -20,12 +21,12 @@ KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
 KAFKA Broker Componet label
 */}}
 {{- define "kafka.broker.componet" -}}
-{{- $componet := "broker" }}
-{{- if .Values.broker.combinedMode.enabled }}
-  {{- $componet = "broker_controller" }}
-{{- end }}
-{{- $componet }}
-{{- end }}
+{{- if (eq (include "kafka.combinedMode" .) "true") -}}
+  {{- print "broker_controller" -}}
+{{- else -}}
+  {{- print "broker" -}}
+{{- end -}}
+{{- end -}}
 
 {{/*
 controller env
@@ -77,13 +78,13 @@ broker env
 - name: KAFKA_HEAP_OPTS
   value: {{ .Values.broker.heapOpts | quote }}
 - name: KAFKA_CFG_PROCESS_ROLES
-  {{- if .Values.broker.combinedMode.enabled }}
+  {{- if (eq (include "kafka.combinedMode" .) "true") }}
   value: "broker,controller"
   {{- else }}
   value: "broker"
   {{- end }}
 - name: KAFKA_CFG_LISTENERS
-  {{- if .Values.broker.combinedMode.enabled }}
+  {{- if (eq (include "kafka.combinedMode" .) "true") }}
   value: "BROKER://0.0.0.0:{{ .Values.containerPort.broker }},EXTERNAL://0.0.0.0:{{ .Values.containerPort.brokerExternal }},CONTROLLER://0.0.0.0:{{ .Values.containerPort.controller }}"
   {{- else }}
   value: "BROKER://0.0.0.0:{{ .Values.containerPort.broker }},EXTERNAL://0.0.0.0:{{ .Values.containerPort.brokerExternal }}"
@@ -110,7 +111,7 @@ broker env
 - name: KAFKA_CFG_MIN_INSYNC_REPLICAS
   value: "2"
 - name: KAFKA_CFG_NUM_PARTITIONS
-  value: "8"
+  value: "9"
 - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
   value: "3"
 - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
@@ -125,7 +126,7 @@ broker env
       key: clusterId
 - name: KAFKA_NODE_ID
   value: "podnameSuffix"
-{{- if not .Values.broker.combinedMode.enabled }}
+{{- if (eq (include "kafka.combinedMode" .) "false") }}
 - name: KAFKA_NODE_ID_OFFSET
   value: "1000"
 {{- end }}
@@ -146,7 +147,7 @@ broker container ports
   name: external
   protocol: TCP
 {{- end }}
-{{- if .Values.broker.combinedMode.enabled }}
+{{- if (eq (include "kafka.combinedMode" .) "true") }}
 - containerPort: {{ .Values.containerPort.controller }}
   name: controller
   protocol: TCP
@@ -185,7 +186,7 @@ KAFKA BOOTSTRAPSERVERS
 {{- $serviceName := include "kafka.broker.headless.serviceName" . -}}
 {{- $namespace := .Release.Namespace -}}
 {{- range $i := until $brokerReplicaCount -}}
-  {{- $servers = printf "%s-%d.%s.%s:%d" $brokerFullName $i $serviceName $namespace $brokerPort | append $servers -}}
+  {{- $servers = printf "%s-%d.%s.%s.svc:%d" $brokerFullName $i $serviceName $namespace $brokerPort | append $servers -}}
 {{- end -}}
 {{ join "," $servers }}
 {{- end -}}

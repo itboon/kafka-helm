@@ -31,12 +31,6 @@ spec:
       {{- if eq $svcValues.type "NodePort" }}
       nodePort: {{ $svcValues.nodePort }}
       {{- end }}
-    {{- if .Values.broker.combinedMode.enabled }}
-    - name: controller
-      port: {{ .Values.controller.service.port | default .Values.containerPort.controller }}
-      targetPort: controller
-      protocol: TCP
-    {{- end }}
   selector:
     {{- include "kafka.selectorLabels" . | nindent 4 }}
     component: {{ $componet | quote }}

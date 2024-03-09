@@ -5,10 +5,14 @@
 nameOverride: ""
 fullnameOverride: ""
 
+# It is recommended to use a random cluster id for each cluster.
+# cat /proc/sys/kernel/random/uuid | base64 | cut -b 1-22
+clusterId: "NDlmZWU5YTItYThjNi00Zj"
+
 image:
   repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.5.1
+  tag: v3.6.1
 
 imagePullSecrets: []
 
@@ -114,7 +118,7 @@ broker:
 
 controller:
   enabled: true
-  replicaCount: 1
+  replicaCount: 0
   terminationGracePeriodSeconds: 60
   heapOpts: "-Xms512m -Xmx512m"
   commonEnvs: []

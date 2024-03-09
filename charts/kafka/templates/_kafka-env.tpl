@@ -11,8 +11,9 @@ KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
   {{- $controllerFullName = include "kafka.broker.fullname" . }}
   {{- $serviceName = include "kafka.broker.headless.serviceName" . }}
 {{- end }}
+{{- $namespace := .Release.Namespace -}}
 {{- range $i := until $controllerReplicaCount }}
-  {{- if gt $i 0 }}{{ printf "," }}{{ end }}{{ printf "%d@%s-%d.%s:%d" $i $controllerFullName $i $serviceName $controllerPort }}
+  {{- if gt $i 0 }}{{ printf "," }}{{ end }}{{ printf "%d@%s-%d.%s.%s.svc:%d" $i $controllerFullName $i $serviceName $namespace $controllerPort }}
 {{- end }}
 {{- end }}
 
@@ -110,7 +111,7 @@ broker env
 - name: KAFKA_CFG_MIN_INSYNC_REPLICAS
   value: "2"
 - name: KAFKA_CFG_NUM_PARTITIONS
-  value: "8"
+  value: "9"
 - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
   value: "3"
 - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
@@ -185,7 +186,7 @@ KAFKA BOOTSTRAPSERVERS
 {{- $serviceName := include "kafka.broker.headless.serviceName" . -}}
 {{- $namespace := .Release.Namespace -}}
 {{- range $i := until $brokerReplicaCount -}}
-  {{- $servers = printf "%s-%d.%s.%s:%d" $brokerFullName $i $serviceName $namespace $brokerPort | append $servers -}}
+  {{- $servers = printf "%s-%d.%s.%s.svc:%d" $brokerFullName $i $serviceName $namespace $brokerPort | append $servers -}}
 {{- end -}}
 {{ join "," $servers }}
 {{- end -}}

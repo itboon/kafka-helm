@@ -28,7 +28,7 @@ spec:
       port: {{ $svcValues.port | default .Values.containerPort.broker }}
       targetPort: broker
       protocol: TCP
-      {{- if eq $svcValues.type "NodePort" }}
+      {{- if and $svcValues.nodePort (eq $svcValues.type "NodePort") }}
       nodePort: {{ $svcValues.nodePort }}
       {{- end }}
   selector:

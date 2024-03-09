@@ -223,6 +223,11 @@ ui:
       port: http
     initialDelaySeconds: 60
     failureThreshold: 5
+  
+  ## ui.service
+  service:
+    annotations: {}
+    type: ClusterIP
 
   ## ui.ingress
   ingress:

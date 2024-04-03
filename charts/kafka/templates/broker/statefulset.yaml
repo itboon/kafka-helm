@@ -94,13 +94,8 @@ spec:
           {{- include "kafka.broker.containerEnv" . | nindent 8 }}
         ports:
           {{- include "kafka.broker.containerPorts" . | nindent 8 }}
-        livenessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - bin/kafka-broker-api-versions.sh --bootstrap-server=127.0.0.1:{{ $brokerPort }}
         {{- with $thisValues.livenessProbe }}
+        livenessProbe:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         readinessProbe:

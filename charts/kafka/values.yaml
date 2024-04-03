@@ -63,17 +63,13 @@ broker:
   
   ## broker.readinessProbe
   readinessProbe:
-    initialDelaySeconds: 25
-    periodSeconds: 10
+    initialDelaySeconds: 50
+    periodSeconds: 20
     timeoutSeconds: 5
     failureThreshold: 3
 
   ## broker.livenessProbe
-  livenessProbe:
-    initialDelaySeconds: 300
-    periodSeconds: 30
-    timeoutSeconds: 5
-    failureThreshold: 5
+  livenessProbe: {}
 
   ## broker.nodeSelector
   nodeSelector: {}
@@ -147,13 +143,13 @@ controller:
     failureThreshold: 3
 
   ## controller.livenessProbe
-  livenessProbe:
-    tcpSocket:
-      port: controller
-    initialDelaySeconds: 300
-    periodSeconds: 30
-    timeoutSeconds: 5
-    failureThreshold: 5
+  livenessProbe: {}
+    # tcpSocket:
+    #   port: controller
+    # initialDelaySeconds: 300
+    # periodSeconds: 30
+    # timeoutSeconds: 5
+    # failureThreshold: 5
 
   ## controller.nodeSelector
   nodeSelector: {}

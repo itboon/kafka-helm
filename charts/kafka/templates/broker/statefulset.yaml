@@ -92,8 +92,6 @@ spec:
       {{- end }}
         env:
           {{- include "kafka.broker.containerEnv" . | nindent 8 }}
-        #- name: KAFKA_CFG_ADVERTISED_LISTENERS
-        #  value: "foo"
         ports:
           {{- include "kafka.broker.containerPorts" . | nindent 8 }}
         livenessProbe:

@@ -4,6 +4,7 @@
 
 nameOverride: ""
 fullnameOverride: ""
+clusterDomain: "cluster.local"
 
 # It is recommended to use a random cluster id for each cluster.
 # cat /proc/sys/kernel/random/uuid | base64 | cut -b 1-22

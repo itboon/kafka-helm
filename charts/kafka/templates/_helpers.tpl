@@ -128,3 +128,10 @@ kafka combinedMode
 {{- print "false" -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+kafka clusterDomain
+*/}}
+{{- define "kafka.clusterDomain" -}}
+{{- default "cluster.local" .Values.clusterDomain -}}
+{{- end -}}

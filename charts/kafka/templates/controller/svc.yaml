@@ -1,4 +1,4 @@
-{{- if not .Values.broker.combinedMode.enabled }}
+{{- if (eq (include "kafka.combinedMode" .) "false") }}
 {{- $thisFullName := include "kafka.controller.headless.serviceName" . }}
 {{- $componet := "controller" }}
 apiVersion: v1

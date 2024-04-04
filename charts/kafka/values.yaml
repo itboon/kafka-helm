@@ -58,7 +58,7 @@ broker:
       cpu: 4
       memory: 16Gi
     requests:
-      cpu: 100m
+      cpu: 200m
       memory: 2Gi
   
   ## broker.readinessProbe

@@ -1,8 +1,17 @@
 {{/*
+KAFKA broker domainSuffix
+*/}}
+{{- define "kafka.broker.domainSuffix" -}}
+{{- $serviceName := include "kafka.broker.headless.serviceName" . -}}
+{{- $namespace := .Release.Namespace -}}
+{{- $clusterDomain := ( include "kafka.clusterDomain" .) -}}
+{{- printf "%s.%s.svc.%s" $serviceName $namespace $clusterDomain -}}
+{{- end -}}
+
+{{/*
 KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
 */}}
 {{- define "kafka.controller.quorum.voters" -}}
-{{- $controllerPort := int .Values.containerPort.controller }}
 {{- $controllerReplicaCount := int .Values.controller.replicaCount }}
 {{- $controllerFullName := include "kafka.controller.fullname" . }}
 {{- $serviceName := include "kafka.controller.headless.serviceName" . }}
@@ -12,10 +21,15 @@ KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
   {{- $serviceName = include "kafka.broker.headless.serviceName" . }}
 {{- end }}
 {{- $namespace := .Release.Namespace -}}
-{{- range $i := until $controllerReplicaCount }}
-  {{- if gt $i 0 }}{{ printf "," }}{{ end }}{{ printf "%d@%s-%d.%s.%s.svc:%d" $i $controllerFullName $i $serviceName $namespace $controllerPort }}
-{{- end }}
-{{- end }}
+{{- $clusterDomain := ( include "kafka.clusterDomain" .) -}}
+{{- $port := int .Values.containerPort.controller }}
+{{- $suffix := printf "%s.%s.svc.%s:%d" $serviceName $namespace $clusterDomain $port -}}
+  {{- $servers := list -}}
+  {{- range $i := until $controllerReplicaCount -}}
+    {{- $servers = printf "%d@%s-%d.%s" $i $controllerFullName $i $suffix | append $servers -}}
+  {{- end -}}
+{{ join "," $servers }}
+{{- end -}}
 
 {{/*
 KAFKA Broker Componet label
@@ -62,7 +76,6 @@ controller env
 broker env
 */}}
 {{- define "kafka.broker.containerEnv" -}}
-{{- $replicaCount := .Values.broker.replicaCount | int -}}
 - name: POD_HOST_IP
   valueFrom:
     fieldRef:
@@ -90,7 +103,8 @@ broker env
   value: "BROKER://0.0.0.0:{{ .Values.containerPort.broker }},EXTERNAL://0.0.0.0:{{ .Values.containerPort.brokerExternal }}"
   {{- end }}
 - name: KAFKA_CFG_ADVERTISED_LISTENERS
-  value: "BROKER://$(POD_IP):{{ .Values.containerPort.broker }}"
+  {{- $domainSuffix := (include "kafka.broker.domainSuffix" .) }}
+  value: "BROKER://$(POD_NAME).{{ $domainSuffix }}:{{ .Values.containerPort.broker }}"
 {{- if .Values.broker.external.enabled }}
 - name: KAFKA_EXTERNAL_SERVICE_TYPE
   value: {{ .Values.broker.external.service.type | quote }}
@@ -105,13 +119,14 @@ broker env
   value: CONTROLLER
 - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
   value: {{ include "kafka.controller.quorum.voters" . }}
+{{- $replicaCount := .Values.broker.replicaCount | int }}
 {{- if and $replicaCount (ge $replicaCount 3) }}
 - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
   value: "3"
 - name: KAFKA_CFG_MIN_INSYNC_REPLICAS
   value: "2"
 - name: KAFKA_CFG_NUM_PARTITIONS
-  value: "9"
+  value: "6"
 - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
   value: "3"
 - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
@@ -179,15 +194,14 @@ kafka fullNodePorts
 KAFKA BOOTSTRAPSERVERS
 */}}
 {{- define "kafka.bootstrapServers" -}}
-{{- $servers := list -}}
-{{- $brokerPort := .Values.containerPort.broker | int -}}
-{{- $brokerReplicaCount := int .Values.broker.replicaCount -}}
 {{- $brokerFullName := include "kafka.broker.fullname" . -}}
-{{- $serviceName := include "kafka.broker.headless.serviceName" . -}}
-{{- $namespace := .Release.Namespace -}}
-{{- range $i := until $brokerReplicaCount -}}
-  {{- $servers = printf "%s-%d.%s.%s.svc:%d" $brokerFullName $i $serviceName $namespace $brokerPort | append $servers -}}
-{{- end -}}
+{{- $domainSuffix := (include "kafka.broker.domainSuffix" .) -}}
+{{- $brokerPort := .Values.containerPort.broker | int -}}
+  {{- $servers := list -}}
+  {{- $brokerReplicaCount := int .Values.broker.replicaCount -}}
+  {{- range $i := until $brokerReplicaCount -}}
+    {{- $servers = printf "%s-%d.%s:%d" $brokerFullName $i $domainSuffix $brokerPort | append $servers -}}
+  {{- end -}}
 {{ join "," $servers }}
 {{- end -}}
 

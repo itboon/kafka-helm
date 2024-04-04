@@ -92,17 +92,10 @@ spec:
       {{- end }}
         env:
           {{- include "kafka.broker.containerEnv" . | nindent 8 }}
-        #- name: KAFKA_CFG_ADVERTISED_LISTENERS
-        #  value: "foo"
         ports:
           {{- include "kafka.broker.containerPorts" . | nindent 8 }}
-        livenessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - bin/kafka-broker-api-versions.sh --bootstrap-server=127.0.0.1:{{ $brokerPort }}
         {{- with $thisValues.livenessProbe }}
+        livenessProbe:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         readinessProbe:
@@ -132,8 +125,6 @@ spec:
           preStop:
             exec:
               command: ["sh", "-c", "sleep 10; bin/kafka-server-stop.sh"]
-      initContainers:
-        {{- include "kafka.initContainer.checkClusterId" . | nindent 8 }}
       terminationGracePeriodSeconds: {{ $thisValues.terminationGracePeriodSeconds }}
       volumes:
       - name: entrypoint-sh

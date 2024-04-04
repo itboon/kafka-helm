@@ -11,15 +11,13 @@ metadata:
 spec:
   type: ClusterIP
   clusterIP: None
-  {{- if .Values.broker.combinedMode.enabled }}
   publishNotReadyAddresses: true
-  {{- end }}
   ports:
     - port: {{ .Values.broker.service.port }}
       targetPort: broker
       protocol: TCP
       name: broker
-    {{- if .Values.broker.combinedMode.enabled }}
+    {{- if (eq (include "kafka.combinedMode" .) "true") }}
     - port: {{ .Values.controller.service.port }}
       targetPort: controller
       protocol: TCP

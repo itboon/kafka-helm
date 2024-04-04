@@ -53,7 +53,7 @@ spec:
           imagePullPolicy: {{ $thisValues.image.pullPolicy }}
           ports:
             - containerPort: 9308
-              name: http-metrics
+              name: {{ $thisValues.containerPortName | default "http-metrics"}}
               protocol: TCP
           {{- with $thisValues.resources }}
           resources:

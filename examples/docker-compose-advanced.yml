@@ -5,7 +5,7 @@ volumes:
 
 services:
   kafka:
-    image: kafkace/kafka:v3.5
+    image: kafkace/kafka:v3.6
     # restart: always
     ports:
       - "29092:29092"

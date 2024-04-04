@@ -1,0 +1,30 @@
+broker:
+  heapOpts: "-Xms256m -Xmx1024m"
+  persistence:
+    enabled: false
+    size: 20Gi
+  resources:
+    limits:
+      cpu: 4
+      memory: 16Gi
+    requests:
+      cpu: 10m
+      memory: 100Mi
+
+controller:
+  heapOpts: "-Xms256m -Xmx1024m"
+  persistence:
+    enabled: false
+  resources:
+    limits:
+      cpu: 4
+      memory: 16Gi
+    requests:
+      cpu: 10m
+      memory: 100Mi
+
+ui:
+  enabled: true
+  service:
+    type: NodePort
+    nodePort: 31008

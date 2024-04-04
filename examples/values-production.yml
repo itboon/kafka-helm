@@ -1,14 +1,14 @@
 image:
   repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.5.1
+  tag: v3.6.1
 
 controller:
   replicaCount: 3
   heapOpts: "-Xms1024m -Xmx1024m"
   persistence:
     enabled: true
-    size: 20Gi
+    size: 40Gi
     #storageClass: gp2
   resources:
     limits:
@@ -23,7 +23,7 @@ broker:
   heapOpts: "-Xms4096m -Xmx4096m"
   persistence:
     enabled: true
-    size: 50Gi
+    size: 60Gi
     #storageClass: gp2
   resources:
     limits:

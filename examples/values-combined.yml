@@ -1,11 +1,4 @@
-image:
-  repository: kafkace/kafka
-  pullPolicy: IfNotPresent
-  tag: v3.5.1
-
 broker:
-  ## broker.combinedMode, the server acts as both a broker and a controller.
-  ## process.roles: "broker,controller"
   combinedMode:
     enabled: true
   replicaCount: 1

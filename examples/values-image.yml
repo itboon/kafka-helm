@@ -1,0 +1,4 @@
+image:
+  repository: kafkace/kafka
+  pullPolicy: IfNotPresent
+  tag: v3.6.1

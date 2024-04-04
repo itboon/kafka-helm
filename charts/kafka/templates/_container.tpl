@@ -10,22 +10,24 @@
       secretKeyRef:
         name: {{ include "kafka.clusterId.SecretName" . }}
         key: clusterId
+  - name: KAFKA_CFG_LOG_DIR
+    value: "/opt/kafka/data"
   command: ["/bin/bash"]
   args:
     - -c
     - |
-      if [[ -f "$KAFKA_CFG_LOG_DIR/meta.properties" ]]; then
-        meta_clusterid=$(grep -E '^cluster\.id' meta.properties | awk -F '=' '{print $2}')
+      export Meta_File="$KAFKA_CFG_LOG_DIR/meta.properties"
+      echo "[check-clusterid] $Meta_File"
+      if [[ -f "$Meta_File" ]]; then
+        meta_clusterid=$(grep -E '^cluster\.id' $Meta_File | awk -F '=' '{print $2}')
         if [[ "$meta_clusterid" != "$KAFKA_CLUSTER_ID" ]]; then
-          cat "$KAFKA_CFG_LOG_DIR/meta.properties"
+          cat "$Meta_File"
           echo "[ERROR] CLUSTER_ID Exception, \
             The CLUSTER_ID currently deployed is $KAFKA_CLUSTER_ID, \
             and The stored CLUSTER_ID in KAFKA_CFG_LOG_DIR is $meta_clusterid"
-          echo "[ERROR] CLUSTER_ID Exception, \
-            Use \"--set clusterId=$meta_clusterid\" to continue helm deploy, \
-            Or clean up KAFKA_CFG_LOG_DIR and deploy a new cluster. \
-            See https://github.com/sir5kong/kafka-docker"
-          exit "500"
+          echo "[WARN] You can modify the CLUSTER_ID by editing the secret. \
+              kubectl -n {{ .Release.Namespace }} edit {{ include "kafka.clusterId.SecretName" . }}"
+          exit "50"
         fi
       fi
   volumeMounts:

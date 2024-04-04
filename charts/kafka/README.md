@@ -4,7 +4,7 @@ https://github.com/itboon/kafka-docker
 
 ## Prerequisites
 
-- Kubernetes 1.18+
+- Kubernetes 1.22+
 - Helm 3.3+
 
 ## 获取 helm 仓库
@@ -42,6 +42,8 @@ helm upgrade --install kafka \
   --namespace kafka-demo \
   --create-namespace \
   --set broker.combinedMode.enabled="false" \
+  --set controller.replicaCount="1" \
+  --set broker.replicaCount="1" \
   kafka-repo/kafka
 ```
 

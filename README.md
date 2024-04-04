@@ -67,16 +67,18 @@ volumes:
 
 services:
   kafka:
-    image: kafkace/kafka:v3.5
+    image: kafkace/kafka:v3.6
     # restart: always
     ports:
       - "29092:29092"
     volumes:
       - kafka-data:/opt/kafka/data
     environment:
-      - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
-      - KAFKA_BROKER_EXTERNAL_HOST=kafka.example.com   ## 对外暴露的主机名，可以是域名或IP地址
-      - KAFKA_BROKER_EXTERNAL_PORT=29092
+      KAFKA_HEAP_OPTS: "-Xms1024m -Xmx1024m"
+      ## 将下面 ${KAFKA_BROKER_EXTERNAL_HOST} 替换成你自己的外部主机名，可以是域名或IP地址
+      ## KAFKA_BROKER_EXTERNAL_HOST: kafka-broker-01.example.com
+      KAFKA_BROKER_EXTERNAL_HOST: ${KAFKA_BROKER_EXTERNAL_HOST}
+      # KAFKA_BROKER_EXTERNAL_PORT: "29092"
 
   ## kafka web 管理 (可选)
   kafka-ui:
@@ -85,8 +87,11 @@ services:
     ports:
       - "18080:8080"
     environment:
-      - KAFKA_CLUSTERS_0_NAME=demo-kafka-server
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: kafka-demo
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      # KAFKA_CLUSTERS_0_READONLY: "true"
+
 
 ### 内部网络
 ## broker 默认内部端口 9092
@@ -132,7 +137,7 @@ Variable examples:
 
 ### Prerequisites
 
-- Kubernetes 1.18+
+- Kubernetes 1.22+
 - Helm 3.3+
 
 ### 获取 helm 仓库
@@ -168,6 +173,8 @@ helm upgrade --install kafka \
   --namespace kafka-demo \
   --create-namespace \
   --set broker.combinedMode.enabled="false" \
+  --set controller.replicaCount="1" \
+  --set broker.replicaCount="1" \
   kafka-repo/kafka
 ```
 

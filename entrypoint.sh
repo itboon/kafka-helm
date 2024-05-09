@@ -150,8 +150,10 @@ set_kafka_cfg_default() {
   if [[ -z "$KAFKA_CFG_CONTROLLER_QUORUM_VOTERS" ]]; then
     export KAFKA_CFG_CONTROLLER_QUORUM_VOTERS="${KAFKA_CFG_NODE_ID}@127.0.0.1:${KAFKA_CONTROLLER_LISTENER_PORT}"
   fi
-  if [[ -z "$KAFKA_CFG_ADVERTISED_LISTENERS" ]]; then
-    get_internal_host
+  if [[ -z "$KAFKA_CFG_ADVERTISED_LISTENERS" ]] && [[ "$KAFKA_CFG_PROCESS_ROLES" != "controller" ]]; then
+    if [[ -z "$KAFKA_BROKER_INTERNAL_HOST" ]]; then
+      get_internal_host
+    fi
     if echo "$KAFKA_BROKER_INTERNAL_HOST" | grep -E '\S+' &> /dev/null; then
       export KAFKA_CFG_ADVERTISED_LISTENERS="${KAFKA_CFG_INTER_BROKER_LISTENER_NAME}://${KAFKA_BROKER_INTERNAL_HOST}:${KAFKA_BROKER_LISTENER_PORT}"
       if [[ -n "$KAFKA_BROKER_EXTERNAL_HOST" ]]; then

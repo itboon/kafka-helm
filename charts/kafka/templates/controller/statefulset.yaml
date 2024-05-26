@@ -133,7 +133,7 @@ spec:
           items:
           - key: entrypoint.sh
             path: entrypoint.sh
-          name: {{ include "kafka.broker.fullname" . }}
+          name: {{ include "kafka.entrypoint.configmapName" . }}
           defaultMode: 0744
   {{- if not $thisValues.persistence.enabled }}
       - name: data

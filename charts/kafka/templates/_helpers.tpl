@@ -70,6 +70,13 @@ kafka image
 {{- end }}
 
 {{/*
+kafka.entrypoint.configmapName
+*/}}
+{{- define "kafka.entrypoint.configmapName" -}}
+{{ include "kafka.fullname" .}}-entrypoint
+{{- end }}
+
+{{/*
 kafka-controller
 */}}
 {{- define "kafka.controller.fullname" -}}
@@ -81,6 +88,13 @@ kafka-broker
 */}}
 {{- define "kafka.broker.fullname" -}}
   {{- printf "%s-broker" (include "kafka.fullname" .) }}
+{{- end }}
+
+{{/*
+kafka.broker.baseConfigFile
+*/}}
+{{- define "kafka.broker.baseConfigFile" -}}
+/etc/kafka/base/server.properties
 {{- end }}
 
 {{/*

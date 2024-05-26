@@ -74,6 +74,27 @@ helm upgrade --install kafka \
 
 > More values please refer to [examples/values-production.yml](https://github.com/sir5kong/kafka-docker/raw/main/examples/values-production.yml)
 
+## Kafka Broker 配置
+
+```yaml
+## 单节点 Broker 配置
+broker:
+  replicaCount: 1
+  config:
+    num.partitions: "2"
+```
+
+```yaml
+## 高可用集群推荐配置
+broker:
+  replicaCount: 3
+  config:
+    num.partitions: "6"
+    default.replication.factor: "3"
+    min.insync.replicas: "2"
+```
+
+> `broker.config` 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
 
 ## 集群外访问
 

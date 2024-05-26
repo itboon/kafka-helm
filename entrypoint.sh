@@ -1,6 +1,8 @@
 #!/bin/bash
 
 export KAFKA_CONF_FILE="/etc/kafka/server.properties"
+export KAFKA_BASE_CONF_FILE="${KAFKA_BASE_CONF_FILE:=/etc/kafka/base/server.properties}"
+
 export KAFKA_CFG_LOG_DIR="$KAFKA_HOME/data"
 
 if [[ -z "$KAFKA_HOME" ]]; then
@@ -179,8 +181,9 @@ init_server_conf() {
   fix_external_advertised_listeners
   if [[ ! -f "$KAFKA_CONF_FILE" ]]; then
     mkdir -p "$(dirname $KAFKA_CONF_FILE)"
-    # cat "${KAFKA_HOME}/config/kraft/server.properties" \
-    #   | grep -E '^[a-zA-Z]' > "$KAFKA_CONF_FILE"
+    if [[ -f "$KAFKA_BASE_CONF_FILE" ]]; then
+      cat "$KAFKA_BASE_CONF_FILE" > $KAFKA_CONF_FILE
+    fi
     touch "$KAFKA_CONF_FILE"
   fi
   for var in "${!KAFKA_CFG_@}"; do

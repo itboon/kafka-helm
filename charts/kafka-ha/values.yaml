@@ -46,6 +46,13 @@ broker:
   commonEnvs: []
   extraEnvs: []
 
+  ## broker.config - server.properties 配置
+  ## 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
+  config:
+    num.partitions: "6"
+    default.replication.factor: "3"
+    # min.insync.replicas: "1"
+
   ## broker.persistence
   persistence:
     enabled: true

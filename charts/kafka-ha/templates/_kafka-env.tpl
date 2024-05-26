@@ -121,12 +121,6 @@ broker env
   value: {{ include "kafka.controller.quorum.voters" . }}
 {{- $replicaCount := .Values.broker.replicaCount | int }}
 {{- if and $replicaCount (ge $replicaCount 3) }}
-- name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
-  value: "3"
-- name: KAFKA_CFG_MIN_INSYNC_REPLICAS
-  value: "2"
-- name: KAFKA_CFG_NUM_PARTITIONS
-  value: "6"
 - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
   value: "3"
 - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
@@ -141,6 +135,8 @@ broker env
       key: clusterId
 - name: KAFKA_NODE_ID
   value: "podnameSuffix"
+- name: KAFKA_BASE_CONF_FILE
+  value: {{ include "kafka.broker.baseConfigFile" . }}
 {{- if (eq (include "kafka.combinedMode" .) "false") }}
 - name: KAFKA_NODE_ID_OFFSET
   value: "1000"

@@ -118,6 +118,9 @@ spec:
         - mountPath: /opt/kafka/logs
           name: data
           subPath: logs
+        - mountPath: {{ include "kafka.broker.baseConfigFile" . }}
+          name: base-config
+          subPath: server.properties
         - mountPath: /entrypoint.sh
           name: entrypoint-sh
           subPath: entrypoint.sh
@@ -127,12 +130,18 @@ spec:
               command: ["sh", "-c", "sleep 10; bin/kafka-server-stop.sh"]
       terminationGracePeriodSeconds: {{ $thisValues.terminationGracePeriodSeconds }}
       volumes:
+      - name: base-config
+        configMap:
+          items:
+          - key: server.properties
+            path: server.properties
+          name: {{ include "kafka.broker.fullname" . }}
       - name: entrypoint-sh
         configMap:
           items:
           - key: entrypoint.sh
             path: entrypoint.sh
-          name: {{ include "kafka.broker.fullname" . }}
+          name: {{ include "kafka.entrypoint.configmapName" . }}
           defaultMode: 0744
   {{- if not $thisValues.persistence.enabled }}
       - name: data

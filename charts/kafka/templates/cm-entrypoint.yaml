@@ -1,5 +1,4 @@
 {{- $componet := include "kafka.broker.componet" . }}
-{{- $replicaCount := .Values.broker.replicaCount | int }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

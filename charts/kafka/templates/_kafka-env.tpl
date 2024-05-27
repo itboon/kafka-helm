@@ -122,11 +122,11 @@ broker env
 {{- $replicaCount := .Values.broker.replicaCount | int }}
 {{- if and $replicaCount (ge $replicaCount 3) }}
 - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
-  value: "3"
+  value: "{{ index .Values.broker.config "offsets.topic.replication.factor" | default "3" }}"
 - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
-  value: "3"
+  value: "{{ index .Values.broker.config "transaction.state.log.replication.factor" | default "3" }}"
 - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
-  value: "2"
+  value: "{{ index .Values.broker.config "transaction.state.log.min.isr" | default "2" }}"
 {{- end }}
 - name: KAFKA_CLUSTER_ID
   valueFrom:

@@ -1,5 +1,4 @@
 {{- $componet := include "kafka.broker.componet" . }}
-{{- $replicaCount := .Values.broker.replicaCount | int }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,9 +15,9 @@ data:
 {{- $replicaCount := .Values.broker.replicaCount | int }}
 {{- if and $replicaCount (ge $replicaCount 3) }}
   {{- if not (hasKey .Values.broker.config "default.replication.factor" ) }}
-    default.replication.factor: "3"
+    default.replication.factor=3
   {{- end }}
   {{- if not (hasKey .Values.broker.config "num.partitions" ) }}
-    num.partitions: "6"
+    num.partitions=6
   {{- end }}
 {{- end}}

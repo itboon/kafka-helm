@@ -3,7 +3,7 @@ name: kafka-ha
 description: Helm chart for Apache Kafka.
 type: application
 
-version: 16.1.0
+version: 16.1.1
 appVersion: v3.6.2
 
 maintainers:

@@ -70,7 +70,7 @@ broker:
   
   ## broker.readinessProbe
   readinessProbe:
-    initialDelaySeconds: 50
+    initialDelaySeconds: 30
     periodSeconds: 20
     timeoutSeconds: 5
     failureThreshold: 3

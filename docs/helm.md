@@ -1,47 +1,66 @@
-# Helm 部署 Kafka
+# Kafka helm chart
+
+https://github.com/itboon/kafka-docker
 
 ## Prerequisites
 
-- Kubernetes 1.18+
+- Kubernetes 1.22+
 - Helm 3.3+
 
-## 添加 helm 仓库
+## 获取 helm 仓库
 
 ``` shell
 helm repo add kafka-repo https://helm-charts.itboon.top/kafka
 helm repo update kafka-repo
 ```
 
-## helm 部署
+## 部署 Kafka
 
-### 部署单节点集群
-
-- 下面这个案例关闭了持久化存储，仅演示部署效果
+### 部署单节点 Kafka 集群
 
 ``` shell
+## 下面的部署案例关闭了持久化存储，仅作为演示
 helm upgrade --install kafka \
   --namespace kafka-demo \
   --create-namespace \
-  --set broker.combinedMode.enabled="true" \
   --set broker.persistence.enabled="false" \
   kafka-repo/kafka
 ```
 
-### Controller 与 Broker 分离部署
+``` shell
+## 默认已开启持久化存储
+helm upgrade --install kafka \
+  --namespace kafka-demo \
+  --create-namespace \
+  kafka-repo/kafka
+```
+
+### 将 broker 和 controller 分开部署
 
 ``` shell
 helm upgrade --install kafka \
   --namespace kafka-demo \
   --create-namespace \
-  --set broker.persistence.size="20Gi" \
+  --set broker.combinedMode.enabled="false" \
+  --set controller.replicaCount="1" \
+  --set broker.replicaCount="1" \
   kafka-repo/kafka
 ```
 
-> 默认已开启持久化存储。
+> `broker.combinedMode.enabled` 混部模式，即进程同时具有 broker + controller 角色，单节点服务器启动一个 Pod 即可。`kafka-repo/kafka` 默认开启混部，`kafka-repo/kafka-ha` 默认关闭混部。
 
 ### 部署高可用集群
 
 ``` shell
+## kafka-repo/kafka-ha 默认部署 3 controller + 3 broker
+helm upgrade --install kafka \
+  --namespace kafka-demo \
+  --create-namespace \
+  kafka-repo/kafka-ha
+```
+
+``` shell
+## 调整集群资源配额
 helm upgrade --install kafka \
   --namespace kafka-demo \
   --create-namespace \
@@ -50,83 +69,33 @@ helm upgrade --install kafka \
   --set broker.heapOpts="-Xms4096m -Xmx4096m" \
   --set broker.resources.requests.memory="8Gi" \
   --set broker.resources.limits.memory="16Gi" \
-  kafka-repo/kafka
+  kafka-repo/kafka-ha
 ```
 
-> 更多 values 请参考 [examples/values-production.yml](https://github.com/itboon/kafka-docker/raw/main/examples/values-production.yml)
+> More values please refer to [examples/values-production.yml](https://github.com/sir5kong/kafka-docker/raw/main/examples/values-production.yml)
 
-### LoadBalancer 外部暴露
+## Kafka Broker 配置
 
-开启 Kubernetes 集群外访问：
-
-``` shell
-helm upgrade --install kafka \
-  --namespace kafka-demo \
-  --create-namespace \
-  --set broker.external.enabled="true" \
-  --set broker.external.service.type="LoadBalancer" \
-  --set broker.external.domainSuffix="kafka.example.com" \
-  kafka-repo/kafka
-```
-
-上面部署成功后请完成域名解析配置。
-
-### Chart Values
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| broker.combinedMode.enabled | bool | `false` | Whether to enable the combined mode |
-
-``` yaml
+```yaml
+## 单节点 Broker 配置
 broker:
-  combinedMode:
-    enabled: true
   replicaCount: 1
-  heapOpts: "-Xms1024m -Xmx1024m"
-  persistence:
-    enabled: true
-    size: 20Gi
+  config:
+    num.partitions: "2"
 ```
+
+```yaml
+## 高可用集群推荐配置
+broker:
+  replicaCount: 3
+  config:
+    num.partitions: "6"
+    default.replication.factor: "3"
+    min.insync.replicas: "2"
+```
+
+> `broker.config` 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
 
 ## 集群外访问
 
-In order to connect to the Kafka server outside the cluster, each Broker must be exposed and `advertised.listeners` must be correctly configured.
-
-There are two ways to expose, `NodePort` and `LoadBalancer`, each broker node needs a `NodePort` or `LoadBalancer`.
-
-### Chart Values
-
-| Key | Type | 默认值 | 描述 |
-|-----|------|---------|-------------|
-| broker.external.enabled | bool | `false` | 是否开启集群外访问 |
-| broker.external.service.type | string | `NodePort` | `NodePort` or `LoadBalancer` |
-| broker.external.service.annotations | object | `{}` | External serivce annotations |
-| broker.external.nodePorts | list | `[]` | NodePort 模式，至少提供一个端口号，如果端口数量少于 broker 数量，则自增 |
-| broker.external.domainSuffix | string | `kafka.example.com` | If you use `LoadBalancer` for external access, you must use a domain name. The external domain name corresponding to the broker is `POD_NAME` + `domain name suffix`, such as `kafka-broker-0.kafka.example.com`. After the deployment, you need to complete the domain name resolution operation |
-
-``` yaml
-## NodePort example
-broker:
-  replicaCount: 3
-  external:
-    enabled: true
-    service:
-      type: "NodePort"
-      annotations: {}
-    nodePorts:
-      - 31050
-      - 31051
-      - 31052
-```
-
-``` yaml
-## LoadBalancer example
-broker:
-  replicaCount: 3
-  external:
-    enabled: true
-    service:
-      type: "LoadBalancer"
-      annotations: {}
-    domainSuffix: "kafka.example.com"
-```
+请参考 <https://github.com/itboon/kafka-docker/blob/main/docs/external.md>

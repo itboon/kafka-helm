@@ -13,8 +13,3 @@
 - 灵活使用环境变量进行配置覆盖
 - 上手简单
 - 提供 `helm chart`，你可以在 Kubernetes 快速部署高可用 Kafka 集群
-
-## 下一步
-
-- [Docker 启动 Kafka](./docker)
-- [Helm 部署 kafka](./helm)

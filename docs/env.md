@@ -29,5 +29,3 @@ Variable examples:
 | `KAFKA_CFG_LOG_RETENTION_HOURS`                | `log.retention.hours` |
 
 > `log.dir` 和 `log.dirs` 已经被锁定，无法使用环境变量进行覆盖。
-
-具体配置案例请参考 [Docker Compose 启动 Kafka](../compose)

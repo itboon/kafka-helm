@@ -34,7 +34,7 @@ is_number() {
 run_as_other_user_if_needed() {
   if [ "$(id -u)" = "0" ]; then
     # If running as root, drop to specified UID and run command
-    exec chroot --userspec=1000:0 / "${@}"
+    exec chroot --userspec=1000:1000 / "${@}"
   else
     # Either we are running in Openshift with random uid and are a member of the root group
     # or with a custom --user
@@ -75,9 +75,9 @@ init_nodeid() {
 
 take_file_ownership() {
   if [ "$(id -u)" = "0" ]; then
-    chown -R 1000:0 "$KAFKA_HOME"
+    chown -R 1000:1000 "$KAFKA_HOME"
     if [ -d "$KAFKA_CFG_LOG_DIR" ]; then
-      chown -R 1000:0 "$KAFKA_CFG_LOG_DIR"
+      chown -R 1000:1000 "$KAFKA_CFG_LOG_DIR"
     fi
   fi
 }
@@ -194,7 +194,7 @@ start_server() {
     fi
     cat "$KAFKA_CONF_FILE"
     if [ "$(id -u)" = "0" ]; then
-      chroot --userspec=1000:0 / ${KAFKA_HOME}/bin/kafka-storage.sh format \
+      chroot --userspec=1000:1000 / ${KAFKA_HOME}/bin/kafka-storage.sh format \
         -t $KAFKA_CLUSTER_ID -c "$KAFKA_CONF_FILE"
     else
       ${KAFKA_HOME}/bin/kafka-storage.sh format \

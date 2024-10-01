@@ -27,7 +27,6 @@ RUN set -ex \
     groupmod -g 3000 $user_name ; \
   fi \
   ; useradd kafka --uid 1000 -m -s /bin/bash \
-  ; usermod -g root kafka \
   ; mkdir -pv "/etc/kafka" && chown -R 1000:1000 "/etc/kafka"
 
 COPY --from=0 --chown=1000:1000 /tmp/kfk/kafka "$KAFKA_HOME"

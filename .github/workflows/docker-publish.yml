@@ -12,8 +12,9 @@ on:
     branches:
       - main
       - stable
+      - relase-app-v[0-9]*
     tags:
-      - v[0-9]*
+      - relase-app-v[0-9]*
 
 env:
   # CR_REPO: kafkace/kafka
@@ -41,8 +42,8 @@ jobs:
           sha_short=$(git rev-parse --short HEAD)
           echo "sha_short=$sha_short" >> $GITHUB_OUTPUT
           echo "[env] GITHUB_REF_NAME: $GITHUB_REF_NAME"
-          if echo "$GITHUB_REF_NAME" | grep -E 'v[0-9.]+(-.*)?'; then
-            kafka_version=$(echo "$GITHUB_REF_NAME" | cut -d "-" -f1 | sed 's/^v//')
+          if echo "$GITHUB_REF_NAME" | grep -E '^relase-app-v[0-9.]+(-.*)?'; then
+            kafka_version=$(echo "$GITHUB_REF_NAME" | grep -Eo 'v[0-9.]+' | sed 's/^v//')
             release_notes_url="https://archive.apache.org/dist/kafka/${kafka_version}/RELEASE_NOTES.html"
             curl -sI "$release_notes_url" | grep '200 OK'
             if [[ $? == "0" ]]; then

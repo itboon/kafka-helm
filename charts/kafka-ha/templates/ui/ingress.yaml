@@ -1,0 +1,68 @@
+{{- with $.Values.ui }}
+{{- if and .enabled .ingress.enabled }}
+{{- with .ingress }}
+{{- $component := "kafka-ui" }}
+{{- $servicePort := $.Values.ui.service.port | default 8080 }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  {{- $fullName := printf "%s-ui" (include "kafka.fullname" $) }}
+  name: {{ $fullName }}
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .ingressClassName }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ .hostname | quote }}
+      http:
+        paths:
+          - path: {{ .path | default "/" }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $servicePort }}
+    {{- range .extraHosts }}
+    - host: {{ .name | quote }}
+      http:
+        paths:
+          - path: {{ .path | default "/" }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $servicePort }}
+    {{- end }}
+    {{- with .extraRules }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }}
+  {{- if or .tls .extraTls }}
+  tls:
+    - hosts:
+      - {{ .hostname }}
+      {{- range .extraHosts }}
+        {{- if .name }}
+      -  {{ .name }}
+        {{- end }}
+      {{- end }}
+      secretName: {{ .tls.secretName }}
+    {{- with .extraTls }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

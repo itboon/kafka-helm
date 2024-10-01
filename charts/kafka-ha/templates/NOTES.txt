@@ -1,0 +1,18 @@
+>>> bootstrap-servers:
+  {{- include "notes.internal.bootstrapServers" . | nindent 4 }}
+
+{{- if .Values.broker.external.enabled }}
+
+external.type: {{ .Values.broker.external.type }}
+
+>>> External bootstrap-servers:
+  {{- include "notes.external.bootstrapServers" . | nindent 4 }}
+{{- end }}
+
+{{- if and (.Values.ui.enabled) (.Values.ui.ingress.enabled) }}
+
+>>> Visit kafka-ui:
+  {{- range $host := .Values.ui.ingress.hosts }}
+    http{{ if $.Values.ui.ingress.tls }}s{{ end }}://{{ $host.host }}/
+  {{- end }}
+{{- end }}

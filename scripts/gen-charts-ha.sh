@@ -1,7 +1,7 @@
 #!/bin/bash
 
 charts_home="../charts"
-chart_ha_root="../charts/kafka-ha-test"
+chart_ha_root="../charts/kafka-ha"
 
 rm -rf "$chart_ha_root"
 cp -a "${charts_home}/kafka" "$chart_ha_root"

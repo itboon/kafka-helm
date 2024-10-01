@@ -1,0 +1,78 @@
+{{- with $.Values.ui }}
+{{- if .enabled }}
+{{- $component := "kafka-ui" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-kafka-ui" (include "kafka.fullname" $) }}
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .replicaCount }}
+  replicas: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kafka.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component | quote }}
+  template:
+    metadata:
+      annotations:
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podAnnotations) .podAnnotations) }}
+        {{- range $key, $value := . }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+      labels:
+        {{- include "kafka.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podLabels) .podLabels) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- include "pod.commonSpec" (dict "context" $ "component" $.Values.ui "name" $component) | nindent 6 }}
+      containers:
+      - name: kafka-ui
+        {{- $imageTag := .image.tag | default "latest" }}
+        image: {{ printf "%s:%s" .image.repository $imageTag }}
+        imagePullPolicy: {{ .image.pullPolicy }}
+        env:
+          - name: DYNAMIC_CONFIG_ENABLED
+            value: "true"
+          - name: KAFKA_CLUSTERS_0_NAME
+            value: {{ include "kafka.fullname" $ }}
+          - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+            {{- $port := $.Values.broker.containerPort | int }}
+            value: {{ printf "%s:%d" (include "broker.headless.serviceAddr" $) $port }}
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+        {{- with .livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{- end }}
+{{- end }}

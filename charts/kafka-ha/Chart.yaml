@@ -1,0 +1,10 @@
+apiVersion: v2
+appVersion: v3.7.1
+description: Helm chart for Apache Kafka.
+keywords:
+- kafka
+- streaming
+- kraft
+name: kafka
+type: application
+version: 17.0.1

@@ -1,0 +1,245 @@
+# Default values for kafka.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+nameOverride: "kafka"
+fullnameOverride: ""
+clusterDomain: "cluster.local"
+# It is recommended to use a random cluster id for each cluster.
+# cat /proc/sys/kernel/random/uuid | base64 | cut -b 1-22
+clusterId: "YLlmZWU5YTItYThjNi00Zg"
+image:
+  repository: kafkace/kafka
+  pullPolicy: IfNotPresent
+  tag: v3.7.1-63ba8d2
+rbac:
+  create: true
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+global:
+  podAnnotations: {}
+  podLabels: {}
+  imagePullSecrets: []
+  hostAliases: []
+  ## Default affinity preset for all components
+  affinityPreset:
+    # -- Default pod anti-affinity rules. Either: `none`, `soft` or `hard`
+    podAntiAffinity: soft
+    # Node affinity rules
+    nodeAffinity:
+      # -- Default node affinity rules. Either: `none`, `soft` or `hard`
+      type: soft
+      # -- Default match expressions for node affinity
+      matchExpressions: []
+      # - key: topology.kubernetes.io/zone
+      #   operator: In
+      #   values:
+      #    - antarctica-east1
+      #    - antarctica-west1
+broker:
+  replicaCount: 3
+  containerPort: 9092
+  terminationGracePeriodSeconds: 60
+  heapOpts: "-Xms1024m -Xmx1024m"
+  commonEnvs: []
+  extraEnvs: []
+  ## broker.config - server.properties 配置
+  ## 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
+  config:
+    num.partitions: "6"
+    # default.replication.factor: "1"
+    # min.insync.replicas: "1"
+
+    default.replication.factor: "3"
+  ## broker.persistence
+  persistence:
+    enabled: true
+    size: 20Gi
+    # storageClass: "gp2"
+  ## broker.resources
+  resources:
+    limits:
+      cpu: 4
+      memory: 16Gi
+    requests:
+      cpu: 500m
+      memory: 2Gi
+  ## broker.readinessProbe
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  ## broker.livenessProbe
+  livenessProbe: {}
+  ## broker.nodeSelector
+  nodeSelector: {}
+  tolerations: []
+  ## broker.podAnnotations
+  podAnnotations: {}
+  podLabels: {}
+  ## broker.antiAffinity
+  antiAffinity: soft
+  antiAffinityTopologyKey: kubernetes.io/hostname
+  podAffinity: {}
+  nodeAffinity: {}
+  ## broker.updateStrategy
+  updateStrategy:
+    type: RollingUpdate
+  ## broker.service
+  service:
+    ## broker.service.type - "ClusterIP" "NodePort" or "LoadBalancer"
+    type: ClusterIP
+    port: 9092
+    # nodePort: 31092
+    annotations: {}
+  ## broker.external
+  external:
+    enabled: false
+    containerPort: 9095
+    # hostPort: 9095
+    ## broker.external.type -- "NodePort" "LoadBalancer" "HostPort" or "PodIP"
+    type: "NodePort"
+    nodePorts: []
+    externalDns:
+      enabled: false
+      # domain: ""
+      # hostnamePrefixOverride: ""
+      annotations: {}
+    autoDiscovery:
+      enabled: false
+      image:
+        repository: kafkace/kubectl
+        pullPolicy: IfNotPresent
+        tag: v1.30
+    service:
+      annotations: {}
+      port: 9095
+controller:
+  enabled: true
+  replicaCount: 3
+  containerPort: 9091
+  terminationGracePeriodSeconds: 60
+  heapOpts: "-Xms512m -Xmx512m"
+  commonEnvs: []
+  extraEnvs: []
+  persistence:
+    enabled: true
+    size: 20Gi
+    # storageClass: "gp2"
+  ## controller.resources
+  resources:
+    limits:
+      cpu: 4
+      memory: 8Gi
+    requests:
+      cpu: 100m
+      memory: 1Gi
+  ## controller.readinessProbe
+  readinessProbe:
+    tcpSocket:
+      port: controller
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  ## controller.livenessProbe
+  livenessProbe: {}
+  # tcpSocket:
+  #   port: controller
+  # initialDelaySeconds: 300
+  # periodSeconds: 30
+  # timeoutSeconds: 5
+  # failureThreshold: 5
+
+  ## controller.nodeSelector
+  nodeSelector: {}
+  tolerations: []
+  ## controller.podAnnotations
+  podAnnotations: {}
+  ## controller.antiAffinity
+  antiAffinity: soft
+  antiAffinityTopologyKey: kubernetes.io/hostname
+  nodeAffinity: {}
+  ## controller.updateStrategy
+  updateStrategy:
+    type: RollingUpdate
+  ## controller.service
+  service:
+    annotations: {}
+    labels: {}
+exporter:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: danielqsj/kafka-exporter
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  podAnnotations:
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9308"
+    # prometheus.io/scrape: "true"
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  ## exporter.resources
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  ## exporter.service
+  service:
+    annotations: {}
+ui:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: provectuslabs/kafka-ui
+    pullPolicy: IfNotPresent
+    tag: v0.7.2
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  ## ui.resources
+  resources:
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 50m
+      memory: 256Mi
+  ## ui.readinessProbe
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 60
+    failureThreshold: 5
+  ## ui.service
+  service:
+    annotations: {}
+    type: ClusterIP
+  ## ui.ingress
+  ingress:
+    enabled: false
+    ingressClassName: ""
+    annotations: {}
+    # nginx.ingress.kubernetes.io/whitelist-source-range: 10.0.0.0/8,192.168.0.0/16
+    hostname: "kafka-ui.example.com"
+    tls:
+      secretName: kafka-example-tls

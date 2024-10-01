@@ -1,0 +1,35 @@
+{{- with $.Values.exporter }}
+{{- if .enabled -}}
+{{- with .service -}}
+{{- $component := "kafka-exporter" }}
+apiVersion: v1
+kind: Service
+metadata:
+  {{- if .nameOverride }}
+  name: {{ .nameOverride }}
+  {{- else }}
+  name: {{ printf "%s-exporter" (include "kafka.fullname" $) }}
+  {{- end }}
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - name: {{ .portName | default "http-metrics" }}
+      port: {{ .port | default 9308 }}
+      targetPort: {{ $.Values.exporter.containerPortName | default "http-metrics" }}
+      protocol: TCP
+  selector:
+    {{- include "kafka.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

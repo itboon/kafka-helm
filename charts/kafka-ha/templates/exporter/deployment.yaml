@@ -1,0 +1,67 @@
+{{- with $.Values.exporter }}
+{{- if .enabled }}
+{{- $brokerServicePort := $.Values.broker.service.port | default $.Values.broker.containerPort | int }}
+{{- $component := "kafka-exporter" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-exporter" (include "kafka.fullname" $) }}
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+spec:
+  {{- with .replicaCount }}
+  replicas: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kafka.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component | quote }}
+  template:
+    metadata:
+      annotations:
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podAnnotations) .podAnnotations) }}
+        {{- range $key, $value := . }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+      labels:
+        {{- include "kafka.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podLabels) .podLabels) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- include "pod.commonSpec" (dict "context" $ "component" $.Values.ui "name" $component) | nindent 6 }}
+      containers:
+      - name: exporter
+        {{- $imageTag := .image.tag | default "latest" }}
+        image: {{ printf "%s:%s" .image.repository $imageTag }}
+        imagePullPolicy: {{ .image.pullPolicy }}
+        {{- $brokerServicePort := $.Values.broker.service.port | default $.Values.broker.containerPort | int }}
+        args:
+          - {{ printf "--kafka.server=%s:%d" (include "kafka.broker.fullname" $) (int $brokerServicePort) }}
+        ports:
+          - containerPort: 9308
+            name: {{ .containerPortName | default "http-metrics"}}
+            protocol: TCP
+        {{- with .livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,55 @@
+{{- with $.Values.ui }}
+{{- if .enabled }}
+{{- with .service }}
+{{- $component := "kafka-ui" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-ui" (include "kafka.fullname" $) }}
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - port: {{ .port | default 8080 }}
+      targetPort: http
+      protocol: TCP
+      name: http
+      {{- if and .nodePort (eq .type "NodePort") }}
+      nodePort: {{ .nodePort }}
+      {{- end }}
+    {{- with .additionalPorts }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  selector:
+    {{- include "kafka.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+  {{- with .type }}
+  type: {{ . | quote }}
+  {{- end }}
+  {{- with .clusterIP }}
+  clusterIP: {{ . | quote }}
+  {{- end }}
+  {{- if and (eq "LoadBalancer" .type) .loadBalancerIP }}
+  loadBalancerIP: {{ .loadBalancerIP | quote }}
+  {{- end }}
+  {{- with .loadBalancerClass }}
+  loadBalancerClass: {{ . | quote }}
+  {{- end }}
+  {{- with .externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . | quote }}
+  {{- end }}
+  {{- with .sessionAffinity }}
+  sessionAffinity: {{ . | quote }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

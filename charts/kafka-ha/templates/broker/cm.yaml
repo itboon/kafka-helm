@@ -1,0 +1,135 @@
+{{- $component := "broker" }}
+{{- $autoDiscoveryEnabled := eq (include "broker.external.autoDiscovery.enabled" .) "true" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kafka.broker.fullname" . }}
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+data:
+  ## /etc/kafka/base/server.properties
+  server.properties: |
+{{- range $k, $v := .Values.broker.config }}
+    {{ printf "%s=%s" $k $v }}
+{{- end }}
+{{- $replicaCount := .Values.broker.replicaCount | int }}
+{{- if and $replicaCount (ge $replicaCount 3) }}
+  {{- if not (hasKey .Values.broker.config "default.replication.factor" ) }}
+    default.replication.factor=3
+  {{- end }}
+  {{- if not (hasKey .Values.broker.config "num.partitions" ) }}
+    num.partitions=6
+  {{- end }}
+{{- end }}
+  broker-config-init.sh: |
+    fix_external_advertised_port() {
+      if [ -n "$1" ]; then
+        local ext_port="$1"
+        export KAFKA_CFG_ADVERTISED_LISTENERS=$(echo "$KAFKA_CFG_ADVERTISED_LISTENERS" | sed -E 's%(EXTERNAL://.+?):[0-9]+%\1:'${ext_port}'%')
+        echo "KAFKA_CFG_ADVERTISED_LISTENERS: $KAFKA_CFG_ADVERTISED_LISTENERS"
+      fi
+    }
+    fix_external_advertised_host() {
+      if [ -n "$1" ]; then
+        local ext_host="$1"
+        export KAFKA_CFG_ADVERTISED_LISTENERS=$(echo "$KAFKA_CFG_ADVERTISED_LISTENERS" | sed -E 's%EXTERNAL://.+?:([0-9]+)%EXTERNAL://'${ext_host}':\1%')
+        echo "KAFKA_CFG_ADVERTISED_LISTENERS: $KAFKA_CFG_ADVERTISED_LISTENERS"
+      fi
+    }
+    fix_external_advertised_listeners() {
+      if [ -z "$KAFKA_EXTERNAL_TYPE" ]; then
+        return
+      fi
+      local i="${POD_NAME##*-}"
+      if [ "$KAFKA_EXTERNAL_TYPE" = "NodePort" ]; then
+        local ext_port=""
+        if [ -n "$KAFKA_EXTERNAL_ADVERTISED_PORTS" ]; then
+          ext_port=$(echo "$KAFKA_EXTERNAL_ADVERTISED_PORTS" | cut -d "," -f $((i+1)) | sed 's/ //g')
+        fi
+{{- if $autoDiscoveryEnabled }}
+        if [ -n "$KAFKA_EXTERNAL_ADVERTISED_PORT" ]; then
+          ext_port="$KAFKA_EXTERNAL_ADVERTISED_PORT"
+        fi
+{{- end }}
+        fix_external_advertised_port "$ext_port"
+      fi
+      if [ "$KAFKA_EXTERNAL_TYPE" = "LoadBalancer" ]; then
+        local ext_host=""
+        if [ -n "$KAFKA_EXTERNAL_DOMAIN" ]; then
+          ext_host="${POD_NAME}.${KAFKA_EXTERNAL_DOMAIN}"
+          if [ -n "$KAFKA_EXTERNAL_HOSTNAME_PREFIX" ]; then
+            ext_host="${KAFKA_EXTERNAL_HOSTNAME_PREFIX}-${i}.${KAFKA_EXTERNAL_DOMAIN}"
+          fi
+        elif [ -n "$KAFKA_EXTERNAL_ADVERTISED_HOSTS" ]; then
+          ext_host=$(echo "$KAFKA_EXTERNAL_ADVERTISED_HOSTS" | cut -d "," -f $((i+1)) | sed 's/ //g')
+        fi
+{{- if $autoDiscoveryEnabled }}
+        if [ -n "$KAFKA_EXTERNAL_ADVERTISED_HOST" ]; then
+          ext_host="$KAFKA_EXTERNAL_ADVERTISED_HOST"
+        fi
+{{- end }}
+        fix_external_advertised_host "$ext_host"
+      fi
+    }
+{{- if $autoDiscoveryEnabled }}
+    export AUTO_DISCOVERY_ENV_PATH="/init-shared/env-discovery.sh"
+    if [ -f "$AUTO_DISCOVERY_ENV_PATH" ]; then
+      . "$AUTO_DISCOVERY_ENV_PATH"
+    fi
+{{- end }}
+    fix_external_advertised_listeners
+{{- if $autoDiscoveryEnabled }}
+  auto-discovery.sh: |-
+    export AUTO_DISCOVERY_ENV_PATH="/init-shared/env-discovery.sh"
+    
+    kubectl version
+    if [ "$?" -ne "0" ]; then
+      echo "[ERROR] exec kubectl failed"
+      exit "50"
+    fi
+    
+    export namespace="{{ include "kafka.namespace" $ }}"
+    export service="$KAFKA_EXTERNAL_SERVICE_NAME"
+
+    get_svc_nodeport() {
+      svc_nodeport=$(kubectl get svc "$service" -n "$namespace" -o jsonpath="{.spec.ports[0].nodePort}")
+      if [ -z "$svc_nodeport" ]; then
+        return "40"
+      fi
+      echo 'export KAFKA_EXTERNAL_ADVERTISED_PORT="'$svc_nodeport'"' >> "$AUTO_DISCOVERY_ENV_PATH"
+    }
+
+    get_svc_lb_address() {
+      svc_ip=$(kubectl get svc "$service" -n "$namespace" -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+      svc_hostname=$(kubectl get svc "$service" -n "$namespace" -o jsonpath="{.status.loadBalancer.ingress[0].hostname}")
+      if [ -n "$svc_ip" ]; then
+        svc_lb_addr="$svc_ip"
+      elif [ -n "$svc_hostname" ]; then
+        svc_lb_addr="$svc_hostname"
+      else
+        return "40"
+      fi
+      echo 'export KAFKA_EXTERNAL_ADVERTISED_HOST="'$svc_lb_addr'"' >> "$AUTO_DISCOVERY_ENV_PATH"
+    }
+
+    echo "# $AUTO_DISCOVERY_ENV_PATH" > "$AUTO_DISCOVERY_ENV_PATH"
+    if [ "$KAFKA_EXTERNAL_TYPE" = "NodePort" ]; then
+      for i in $(seq 1 100); do
+        get_svc_nodeport
+        if [ "$?" -eq "0" ]; then
+          break
+        fi
+        sleep 3
+      done
+    elif [ "$KAFKA_EXTERNAL_TYPE" = "LoadBalancer" ]; then
+      for i in $(seq 1 100); do
+        get_svc_lb_address
+        if [ "$?" -eq "0" ]; then
+          break
+        fi
+        sleep 3
+      done
+    fi
+{{- end }}

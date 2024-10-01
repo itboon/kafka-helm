@@ -1,0 +1,58 @@
+{{- $component := "broker" }}
+{{- with $.Values.broker.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kafka.broker.fullname" $ }}
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+  {{- if .portsOverride }}
+    {{- toYaml .portsOverride | nindent 4 }}
+  {{- else }}
+    - name: broker
+      port: {{ $.Values.broker.containerPort }}
+      targetPort: broker
+      protocol: TCP
+    {{- if $.Values.broker.external.enabled }}
+    - name: external
+      port: {{ $.Values.broker.external.containerPort }}
+      targetPort: external
+      protocol: TCP
+      {{- if and .nodePort (eq .type "NodePort") }}
+      nodePort: {{ .nodePort }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  selector:
+    {{- include "kafka.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+  {{- with .type }}
+  type: {{ . | quote }}
+  {{- end }}
+  {{- with .clusterIP }}
+  clusterIP: {{ . | quote }}
+  {{- end }}
+  {{- if and (eq "LoadBalancer" .type) .loadBalancerIP }}
+  loadBalancerIP: {{ .loadBalancerIP | quote }}
+  {{- end }}
+  {{- with .loadBalancerClass }}
+  loadBalancerClass: {{ . | quote }}
+  {{- end }}
+  {{- with .externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . | quote }}
+  {{- end }}
+  {{- with .sessionAffinity }}
+  sessionAffinity: {{ . | quote }}
+  {{- end }}
+{{- end }}

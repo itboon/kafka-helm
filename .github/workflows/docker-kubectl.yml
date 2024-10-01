@@ -41,7 +41,7 @@ jobs:
           echo "[env] GITHUB_REF_NAME: $GITHUB_REF_NAME"
           if echo "$GITHUB_REF_NAME" | grep -E 'kubectl-v[0-9.]+(-.*)?'; then
             app_version=$(echo "$GITHUB_REF_NAME" | cut -d "-" -f2 | sed 's/^v//')
-            if [ "$?"" -eq "0" ]; then
+            if [ "$?" -eq "0" ]; then
               echo "is_release=true" >> $GITHUB_OUTPUT
               echo "app_version=${app_version}" >> $GITHUB_OUTPUT
               if [ "$app_version" = "$APP_VERSION" ]; then

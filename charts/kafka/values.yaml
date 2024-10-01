@@ -13,7 +13,7 @@ clusterId: "YLlmZWU5YTItYThjNi00Zg"
 image:
   repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.6.2-abcb272
+  tag: v3.7.1-63ba8d2
 
 rbac:
   create: true

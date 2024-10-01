@@ -1,74 +1,67 @@
-{{- if .Values.exporter.enabled }}
-{{- $thisValues := .Values.exporter }}
-{{- $brokerServicePort := .Values.broker.service.port | default .Values.containerPort.broker | int }}
-{{- $componet := "kafka-exporter" }}
+{{- with $.Values.exporter }}
+{{- if .enabled }}
+{{- $brokerServicePort := $.Values.broker.service.port | default $.Values.broker.containerPort | int }}
+{{- $component := "kafka-exporter" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kafka.exporter.fullname" . }}
+  name: {{ printf "%s-exporter" (include "kafka.fullname" $) }}
+  namespace: {{ include "kafka.namespace" $ }}
   labels:
-    {{- include "kafka.labels" . | nindent 4 }}
-    component: {{ $componet | quote }}
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
 spec:
-  {{- if $thisValues.replicaCount }}
-  replicas: {{ $thisValues.replicaCount }}
+  {{- with .replicaCount }}
+  replicas: {{ . }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "kafka.selectorLabels" . | nindent 6 }}
-      component: {{ $componet | quote }}
+      {{- include "kafka.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component | quote }}
   template:
     metadata:
       annotations:
-      {{- if $thisValues.podAnnotations }}
-        {{- with $thisValues.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podAnnotations) .podAnnotations) }}
+        {{- range $key, $value := . }}
+        {{ $key }}: {{ $value | quote }}
         {{- end }}
-      {{- else }}
-        prometheus.io/path: /metrics
-        prometheus.io/port: "9308"
-        prometheus.io/scrape: "true"
-      {{- end }}
+        {{- end }}
       labels:
-        {{- include "kafka.selectorLabels" . | nindent 8 }}
-        component: {{ $componet | quote }}
-        {{- with $thisValues.podLabels }}
+        {{- include "kafka.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podLabels) .podLabels) }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "kafka.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml $thisValues.podSecurityContext | nindent 8 }}
+      {{- include "pod.commonSpec" (dict "context" $ "component" $.Values.ui "name" $component) | nindent 6 }}
       containers:
-        - name: exporter
-          args:
-            - {{ printf "--kafka.server=%s:%d" (include "kafka.broker.fullname" .) $brokerServicePort }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ $thisValues.image.repository }}:{{ $thisValues.image.tag }}"
-          imagePullPolicy: {{ $thisValues.image.pullPolicy }}
-          ports:
-            - containerPort: 9308
-              name: {{ $thisValues.containerPortName | default "http-metrics"}}
-              protocol: TCP
-          {{- with $thisValues.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with $thisValues.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $thisValues.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $thisValues.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      - name: exporter
+        {{- $imageTag := .image.tag | default "latest" }}
+        image: {{ printf "%s:%s" .image.repository $imageTag }}
+        imagePullPolicy: {{ .image.pullPolicy }}
+        {{- $brokerServicePort := $.Values.broker.service.port | default $.Values.broker.containerPort | int }}
+        args:
+          - {{ printf "--kafka.server=%s:%d" (include "kafka.broker.fullname" $) (int $brokerServicePort) }}
+        ports:
+          - containerPort: 9308
+            name: {{ .containerPortName | default "http-metrics"}}
+            protocol: TCP
+        {{- with .livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{- end }}
 {{- end }}

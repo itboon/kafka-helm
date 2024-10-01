@@ -1,13 +1,12 @@
 >>> bootstrap-servers:
-  {{- include "kafka.bootstrapServers" . | nindent 4 }}
+  {{- include "notes.internal.bootstrapServers" . | nindent 4 }}
 
 {{- if .Values.broker.external.enabled }}
 
+external.type: {{ .Values.broker.external.type }}
+
 >>> External bootstrap-servers:
-  {{- include "kafka.external.bootstrapServers" . | nindent 4 }}
-  {{- if and .Values.broker.external.enabled (eq .Values.broker.external.service.type "NodePort") }}
-    Use "kubectl get node -o wide" to find node ip address.
-  {{- end }}
+  {{- include "notes.external.bootstrapServers" . | nindent 4 }}
 {{- end }}
 
 {{- if and (.Values.ui.enabled) (.Values.ui.ingress.enabled) }}

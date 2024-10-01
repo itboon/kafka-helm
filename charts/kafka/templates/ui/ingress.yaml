@@ -1,58 +1,68 @@
-{{- if .Values.ui.enabled }}
-{{- if .Values.ui.ingress.enabled }}
-{{- $uiFullName := include "kafka.ui.fullname" . }}
-{{- if and .Values.ui.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.ui.ingress.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.ui.ingress.annotations "kubernetes.io/ingress.class" .Values.ui.ingress.className}}
-  {{- end }}
-{{- end }}
-{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+{{- with $.Values.ui }}
+{{- if and .enabled .ingress.enabled }}
+{{- with .ingress }}
+{{- $component := "kafka-ui" }}
+{{- $servicePort := $.Values.ui.service.port | default 8080 }}
 apiVersion: networking.k8s.io/v1
-{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
-apiVersion: networking.k8s.io/v1beta1
-{{- else -}}
-apiVersion: extensions/v1beta1
-{{- end }}
 kind: Ingress
 metadata:
-  name: {{ $uiFullName }}
+  {{- $fullName := printf "%s-ui" (include "kafka.fullname" $) }}
+  name: {{ $fullName }}
+  namespace: {{ include "kafka.namespace" $ }}
   labels:
-    {{- include "kafka.labels" . | nindent 4 }}
-  {{- with .Values.ui.ingress.annotations }}
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if and .Values.ui.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
-  ingressClassName: {{ .Values.ui.ingress.className }}
-  {{- end }}
-  {{- if .Values.ui.ingress.tls }}
-  tls:
-    {{- range .Values.ui.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
+  {{- with .ingressClassName }}
+  ingressClassName: {{ . }}
   {{- end }}
   rules:
-    {{- range .Values.ui.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - host: {{ .hostname | quote }}
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: {{ .path | default "/" }}
+            pathType: {{ .pathType | default "Prefix" }}
             backend:
-              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
-                name: {{ $uiFullName }}
+                name: {{ $fullName }}
                 port:
-                  number: 8080
-              {{- else }}
-              serviceName: {{ $uiFullName }}
-              servicePort: 8080
-              {{- end }}
+                  number: {{ $servicePort }}
+    {{- range .extraHosts }}
+    - host: {{ .name | quote }}
+      http:
+        paths:
+          - path: {{ .path | default "/" }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $servicePort }}
     {{- end }}
+    {{- with .extraRules }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }}
+  {{- if or .tls .extraTls }}
+  tls:
+    - hosts:
+      - {{ .hostname }}
+      {{- range .extraHosts }}
+        {{- if .name }}
+      -  {{ .name }}
+        {{- end }}
+      {{- end }}
+      secretName: {{ .tls.secretName }}
+    {{- with .extraTls }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

@@ -1,16 +1,10 @@
 apiVersion: v2
-name: kafka
-description: Helm chart for Apache Kafka.
-type: application
-
-version: 16.1.1
 appVersion: v3.6.2
-
-maintainers:
-  - name: sir5kong
-    url: "https://github.com/itboon/kafka-docker"
-
+description: Helm chart for Apache Kafka.
 keywords:
-  - kafka
-  - streaming
-  - kraft
+- kafka
+- streaming
+- kraft
+name: kafka
+type: application
+version: 17.0.0

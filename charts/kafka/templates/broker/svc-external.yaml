@@ -1,50 +1,77 @@
-{{- if .Values.broker.external.enabled }}
-{{- $externalValues := .Values.broker.external }}
-{{- $svclValues := .Values.broker.external.service }}
-{{- $componet := include "kafka.broker.componet" . }}
+{{- $component := "broker" }}
+{{- with .Values.broker.external }}
+{{- if and .enabled .type }}
+{{- if or (eq .type "NodePort") (eq .type "LoadBalancer") }}
+{{- $externalType := .type }}
 {{- $fullNodePorts := list }}
-{{- range include "kafka.fullNodePorts" . | split "," }}
+{{- range include "broker.fullNodePorts" $ | split "," }}
   {{- $fullNodePorts = printf "%s" . | append $fullNodePorts }}
 {{- end }}
-{{- $replicaCount := .Values.broker.replicaCount | int }}
+{{- $replicaCount := $.Values.broker.replicaCount | int }}
 {{- range $i := until $replicaCount }}
-  {{- $nodePort := (index $fullNodePorts $i) }}
-  {{- $targetPod := printf "%s-%d" (include "kafka.broker.fullname" $) $i }}
+  {{- $targetPod := printf "%s-%d" (include "kafka.broker.fullname" $) (int $i) }}
+{{- with $.Values.broker.external.service }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ printf "%s-%d-external" (include "kafka.broker.fullname" $) $i | trunc 63 | trimSuffix "-" }}
+  name: {{ printf "%s-external" $targetPod }}
+  namespace: {{ include "kafka.namespace" $ }}
   labels:
     {{- include "kafka.labels" $ | nindent 4 }}
-    component: {{ $componet | quote }}
+    app.kubernetes.io/component: {{ $component | quote }}
     pod: {{ $targetPod }}
-  {{- with $svclValues.annotations }}
   annotations:
+  {{- with .annotations }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- if eq (include "broker.externalDns.enabled" $) "true" }}
+  {{- if eq $.Values.broker.external.type "LoadBalancer" }}
+    {{- $hostname := printf "%s.%s" $targetPod (include "broker.externalDns.domain" $) }}
+    {{- with $.Values.broker.external.externalDns.hostnamePrefixOverride }}
+    {{- $hostname = printf "%s-%d.%s" . (int $i) (include "broker.externalDns.domain" $) }}
+    {{- end }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $hostname | quote }}
+    {{- with $.Values.broker.external.externalDns.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
 spec:
-  type: {{ $svclValues.type | default "NodePort" }}
-  {{- if eq $svclValues.type "LoadBalancer" }}
-  {{- if $svclValues.loadBalancerSourceRanges }}
-  loadBalancerSourceRanges:
-    {{- toYaml $svclValues.loadBalancerSourceRanges | nindent 4 }}
-  {{- end }}
-  {{- if $svclValues.allocateLoadBalancerNodePorts }}
-  allocateLoadBalancerNodePorts: true
-  {{- end }}
-  {{- end }}
   ports:
     - name: external
-      port: {{ $svclValues.port }}
+      port: {{ .port | default $.Values.broker.external.containerPort }}
       targetPort: external
       protocol: TCP
-      {{- if eq $svclValues.type "NodePort" }}
-      nodePort: {{ $nodePort }}
+      {{- if eq $externalType "NodePort" }}
+      {{- if ne (include "broker.external.autoDiscovery.enabled" $) "true" }}
+      nodePort: {{ index $fullNodePorts $i }}
+      {{- end }}
       {{- end }}
   selector:
     {{- include "kafka.selectorLabels" $ | nindent 4 }}
-    component: {{ $componet | quote }}
+    app.kubernetes.io/component: {{ $component | quote }}
     statefulset.kubernetes.io/pod-name: {{ $targetPod }}
+  {{- if or (eq "NodePort" $externalType) (eq "LoadBalancer" $externalType) }}
+  type: {{ $externalType | quote }}
+  {{- end }}
+  {{- if and (eq "LoadBalancer" $externalType) .loadBalancerIP }}
+  loadBalancerIP: {{ .loadBalancerIP | quote }}
+  {{- end }}
+  {{- with .loadBalancerClass }}
+  loadBalancerClass: {{ . | quote }}
+  {{- end }}
+  {{- with .externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . | quote }}
+  {{- end }}
+  {{- with .sessionAffinity }}
+  sessionAffinity: {{ . | quote }}
+  {{- end }}
+  {{- if .allocateLoadBalancerNodePorts }}
+  allocateLoadBalancerNodePorts: true
+  {{- end }}
 ---
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

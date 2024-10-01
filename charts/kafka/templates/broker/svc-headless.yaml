@@ -1,28 +1,46 @@
-{{- $svcValues := .Values.broker.service }}
-{{- $thisFullName := include "kafka.broker.headless.serviceName" . }}
-{{- $componet := include "kafka.broker.componet" . }}
+{{- $component := "broker" }}
+{{- $svcValues := .Values.broker.headlessService | default dict }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $thisFullName }}
+  name: {{ include "kafka.broker.headless.serviceName" $ }}
+  namespace: {{ include "kafka.namespace" $ }}
   labels:
-    {{- include "kafka.labels" . | nindent 4 }}
-    component: {{ $componet | quote }}
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+  {{- with $svcValues.labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  annotations:
+  {{- with $svcValues.annotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if eq (include "broker.externalDns.enabled" $) "true" }}
+  {{- $validExternalType := list "PodIP" "NodePort" "HostPort" }}
+  {{- $externalType := $.Values.broker.external.type }}
+  {{- if has $externalType $validExternalType }}
+    external-dns.alpha.kubernetes.io/hostname: {{ include "broker.externalDns.domain" $ }}
+    {{- if or (eq $externalType "NodePort") (eq $externalType "HostPort") }}
+    external-dns.alpha.kubernetes.io/endpoints-type: HostIP
+    {{- end }}
+    {{- with $.Values.broker.external.externalDns.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
 spec:
   type: ClusterIP
   clusterIP: None
   publishNotReadyAddresses: true
   ports:
-    - port: {{ .Values.broker.service.port }}
+    - port: {{ $.Values.broker.containerPort }}
       targetPort: broker
       protocol: TCP
       name: broker
-    {{- if (eq (include "kafka.combinedMode" .) "true") }}
-    - port: {{ .Values.controller.service.port }}
+    - port: {{ $.Values.controller.containerPort }}
       targetPort: controller
       protocol: TCP
       name: controller
-    {{- end }}
   selector:
-    {{- include "kafka.selectorLabels" . | nindent 4 }}
-    component: {{ $componet | quote }}
+    {{- include "kafka.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}

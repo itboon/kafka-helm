@@ -1,100 +1,71 @@
-{{- $thisValues := .Values.broker }}
-{{- $thisFullName := include "kafka.broker.fullname" . }}
-{{- $componet := include "kafka.broker.componet" . }}
-{{- $brokerFullName := $thisFullName }}
-{{- $brokerPort := .Values.containerPort.broker }}
-{{- $antiAffinityTopologyKey := default "kubernetes.io/hostname" $thisValues.antiAffinityTopologyKey }}
----
+{{- $component := "broker" }}
+{{- with $.Values.broker }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ $thisFullName }}
+  name: {{ include "kafka.broker.fullname" $ }}
+  namespace: {{ include "kafka.namespace" $ }}
   labels:
-    {{- include "kafka.labels" . | nindent 4 }}
-    component: {{ $componet | quote }}
-spec:
-  {{- if $thisValues.replicaCount }}
-  replicas: {{ $thisValues.replicaCount }}
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
+spec:
+  minReadySeconds: {{ .minReadySeconds | default 20 }}
+  {{- if .replicaCount }}
+  replicas: {{ .replicaCount }}
+  {{- end }}
+  podManagementPolicy: {{ .podManagementPolicy | default "Parallel" }}
+  {{- with .updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  serviceName: {{ include "kafka.broker.headless.serviceName" $ }}
   selector:
     matchLabels:
-      {{- include "kafka.selectorLabels" . | nindent 6 }}
-      component: {{ $componet | quote }}
-  serviceName: {{ include "kafka.broker.headless.serviceName" . }}
-  updateStrategy:
-    type: {{ ( $thisValues.updateStrategy | default dict ).type | default "RollingUpdate" }}
+      {{- include "kafka.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component | quote }}
   template:
     metadata:
-      {{- if or $.Values.podAnnotations $thisValues.podAnnotations }}
       annotations:
-        {{- with $.Values.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
+        checksum/cm: {{ include (print $.Template.BasePath "/cm-entrypoint.yaml") $ | sha256sum }}
+        checksum/broker-cm: {{ include (print $.Template.BasePath "/broker/cm.yaml") $ | sha256sum }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podAnnotations) .podAnnotations) }}
+        {{- range $key, $value := . }}
+        {{ $key }}: {{ $value | quote }}
         {{- end }}
-        {{- with $thisValues.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- end }}
       labels:
-        {{- include "kafka.selectorLabels" . | nindent 8 }}
-        component: {{ $componet | quote }}
-        {{- with $thisValues.podLabels }}
+        {{- include "kafka.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podLabels) .podLabels) }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
+      {{- include "pod.commonSpec" (dict "context" $ "component" $.Values.broker "name" $component) | nindent 6 }}
+      {{- if or .initContainers (eq (include "broker.external.autoDiscovery.enabled" $) "true") }}
+      initContainers:
+        {{- include "broker.external.autoDiscovery.initContainer" $ | nindent 8 }}
+        {{- with .initContainers }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "kafka.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml $thisValues.podSecurityContext | nindent 8 }}
-      {{- if or $.Values.nodeSelector $thisValues.nodeSelector }}
-      nodeSelector:
-        {{- if $thisValues.nodeSelector }}
-        {{- toYaml $thisValues.nodeSelector | nindent 8 }}
-        {{- else if $.Values.nodeSelector }}
-        {{- toYaml $.Values.nodeSelector | nindent 8 }}
         {{- end }}
-      {{- end }}
-      affinity:
-      {{- if eq ($thisValues.antiAffinity | lower) "hard" }}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                {{- include "kafka.selectorLabels" . | nindent 18 }}
-                component: {{ $componet | quote }}
-            topologyKey: {{ $antiAffinityTopologyKey | quote }}
-      {{- else }}
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 5
-            podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  {{- include "kafka.selectorLabels" . | nindent 18 }}
-                  component: {{ $componet | quote }}
-              topologyKey: {{ $antiAffinityTopologyKey | quote }}
-      {{- end }}
-      {{- with $thisValues.podAffinity }}
-        podAffinity:
-        {{ toYaml . | indent 10 }}
-      {{- end }}
-      {{- with $thisValues.nodeAffinity }}
-        nodeAffinity:
-        {{ toYaml . | indent 10 }}
       {{- end }}
       containers:
       - name: kafka
-        image: {{ include "kafka.kafkaImage" . | quote }}
-      {{- if .Values.image.pullPolicy }}
-        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-      {{- end }}
+        image: {{ include "kafka.kafkaImage" $ | quote }}
+        {{- with $.Values.image.pullPolicy }}
+        imagePullPolicy: {{ . | quote }}
+        {{- end }}
         env:
-          {{- include "kafka.broker.containerEnv" . | nindent 8 }}
+          {{- include "broker.containerEnv" $ | nindent 8 }}
         ports:
-          {{- include "kafka.broker.containerPorts" . | nindent 8 }}
-        {{- with $thisValues.livenessProbe }}
+          {{- include "broker.containerPorts" $ | nindent 8 }}
+        {{- with .livenessProbe }}
         livenessProbe:
           {{- toYaml . | nindent 10 }}
         {{- end }}
@@ -103,12 +74,16 @@ spec:
             command:
             - sh
             - -c
-            - bin/kafka-broker-api-versions.sh --bootstrap-server=127.0.0.1:{{ $brokerPort }}
-        {{- with $thisValues.readinessProbe }}
+            - bin/kafka-broker-api-versions.sh --bootstrap-server=127.0.0.1:{{ $.Values.broker.containerPort }}
+        {{- with .readinessProbe }}
           {{- toYaml . | nindent 10 }}
         {{- end }}
-        {{- with $thisValues.resources }}
+        {{- with .resources }}
         resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .containerSecurityContext }}
+        securityContext:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         volumeMounts:
@@ -118,49 +93,68 @@ spec:
         - mountPath: /opt/kafka/logs
           name: data
           subPath: logs
-        - mountPath: {{ include "kafka.broker.baseConfigFile" . }}
-          name: base-config
-          subPath: server.properties
+        - mountPath: "/etc/kafka/base-cm"
+          name: base-cm
+        # - mountPath: "kafka.broker.baseConfigFile"
+        #   name: base-config
+        #   subPath: server.properties
         - mountPath: /entrypoint.sh
           name: entrypoint-sh
           subPath: entrypoint.sh
+        # - mountPath: /etc/kafka/broker/config-init.sh
+        #   name: config-init-sh
+        #   subPath: config-init.sh
+        {{- if eq (include "broker.external.autoDiscovery.enabled" $) "true" }}
+        - name: auto-discovery-shared
+          mountPath: /init-shared
+        {{- end }}
         lifecycle:
           preStop:
             exec:
               command: ["sh", "-c", "sleep 10; bin/kafka-server-stop.sh"]
-      terminationGracePeriodSeconds: {{ $thisValues.terminationGracePeriodSeconds }}
       volumes:
-      - name: base-config
+      - name: base-cm
         configMap:
-          items:
-          - key: server.properties
-            path: server.properties
-          name: {{ include "kafka.broker.fullname" . }}
+          name: {{ include "kafka.broker.fullname" $ }}
+          defaultMode: 0744
       - name: entrypoint-sh
         configMap:
           items:
           - key: entrypoint.sh
             path: entrypoint.sh
-          name: {{ include "kafka.entrypoint.configmapName" . }}
+          name: {{ include "kafka.entrypoint.configmapName" $ }}
           defaultMode: 0744
-  {{- if not $thisValues.persistence.enabled }}
+      {{- if eq (include "broker.external.autoDiscovery.enabled" $) "true" }}
+      - name: auto-discovery-shared
+        emptyDir: {}
+      {{- end }}
+  {{- if not .persistence.enabled }}
       - name: data
         emptyDir: {}
   {{- else }}
   volumeClaimTemplates:
     - metadata:
         name: data
-        {{- with $thisValues.persistence.annotations }}
+        {{- with .persistence.annotations }}
         annotations:
-          {{- . | toYaml | nindent 10 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
       spec:
         accessModes:
+          {{- with .persistence.accessModes }}
+          {{- toYaml . | nindent 10 }}
+          {{- else }}
           - ReadWriteOnce
-        {{- with $thisValues.persistence.storageClass }}
+          {{- end }}
+        {{- with .persistence.storageClass }}
         storageClassName: {{ if (eq "-" .) }}""{{ else }}{{ . }}{{ end }}
         {{- end }}
         resources:
           requests:
-            storage: {{ $thisValues.persistence.size | quote }}
+            storage: {{ .persistence.size | quote }}
+        {{- with .persistence.selector }}
+        selector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
   {{- end }}
+{{- end }}

@@ -1,80 +1,78 @@
-{{- if .Values.ui.enabled }}
-{{- $thisValues := .Values.ui }}
-{{- $componet := "kafka-ui" }}
+{{- with $.Values.ui }}
+{{- if .enabled }}
+{{- $component := "kafka-ui" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kafka.ui.fullname" . }}
+  name: {{ printf "%s-kafka-ui" (include "kafka.fullname" $) }}
+  namespace: {{ include "kafka.namespace" $ }}
   labels:
-    {{- include "kafka.labels" . | nindent 4 }}
-    component: {{ $componet | quote }}
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component | quote }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  {{- if $thisValues.replicaCount }}
-  replicas: {{ $thisValues.replicaCount }}
+  {{- with .replicaCount }}
+  replicas: {{ . }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "kafka.selectorLabels" . | nindent 6 }}
-      component: {{ $componet | quote }}
+      {{- include "kafka.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component | quote }}
   template:
     metadata:
-      {{- with $thisValues.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podAnnotations) .podAnnotations) }}
+        {{- range $key, $value := . }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
       labels:
-        {{- include "kafka.selectorLabels" . | nindent 8 }}
-        component: {{ $componet | quote }}
-        {{- with $thisValues.podLabels }}
+        {{- include "kafka.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $component | quote }}
+        {{- with (mergeOverwrite (deepCopy $.Values.global.podLabels) .podLabels) }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "kafka.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml $thisValues.podSecurityContext | nindent 8 }}
+      {{- include "pod.commonSpec" (dict "context" $ "component" $.Values.ui "name" $component) | nindent 6 }}
       containers:
-        - name: kafka-ui
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ $thisValues.image.repository }}:{{ $thisValues.image.tag }}"
-          imagePullPolicy: {{ $thisValues.image.pullPolicy }}
-          env:
-            - name: DYNAMIC_CONFIG_ENABLED
-              value: "true"
-            - name: KAFKA_CLUSTERS_0_NAME
-              value: {{ include "kafka.fullname" . }}
-            - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
-              value: {{ include "kafka.bootstrapServers" . }}
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-          {{- with $thisValues.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with $thisValues.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with $thisValues.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with $thisValues.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $thisValues.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $thisValues.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      - name: kafka-ui
+        {{- $imageTag := .image.tag | default "latest" }}
+        image: {{ printf "%s:%s" .image.repository $imageTag }}
+        imagePullPolicy: {{ .image.pullPolicy }}
+        env:
+          - name: DYNAMIC_CONFIG_ENABLED
+            value: "true"
+          - name: KAFKA_CLUSTERS_0_NAME
+            value: {{ include "kafka.fullname" $ }}
+          - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+            {{- $port := $.Values.broker.containerPort | int }}
+            value: {{ printf "%s:%d" (include "broker.headless.serviceAddr" $) $port }}
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+        {{- with .livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{- end }}
 {{- end }}

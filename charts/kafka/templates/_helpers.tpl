@@ -39,7 +39,11 @@ helm.sh/chart: {{ include "kafka.chart" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
+app.kubernetes.io/part-of: {{ include "kafka.name" . }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.global.additionalLabels }}
+{{ toYaml . }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -58,6 +62,17 @@ Create the name of the service account to use
 {{- default (include "kafka.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Allow the release namespace to be overridden for multi-namespace deployments in combined charts
+*/}}
+{{- define "kafka.namespace" -}}
+{{- if .Values.namespaceOverride }}
+{{- .Values.namespaceOverride }}
+{{- else }}
+{{- .Release.Namespace }}
 {{- end }}
 {{- end }}
 
@@ -91,13 +106,6 @@ kafka-broker
 {{- end }}
 
 {{/*
-kafka.broker.baseConfigFile
-*/}}
-{{- define "kafka.broker.baseConfigFile" -}}
-/etc/kafka/base/server.properties
-{{- end }}
-
-{{/*
 kafka-ui
 */}}
 {{- define "kafka.ui.fullname" -}}
@@ -112,20 +120,6 @@ kafka-exporter
 {{- end }}
 
 {{/*
-kafka controllaer headless serviceName
-*/}}
-{{- define "kafka.controller.headless.serviceName" -}}
-{{- printf "%s" (include "kafka.controller.fullname" .) }}
-{{- end }}
-
-{{/*
-kafka broker headless serviceName
-*/}}
-{{- define "kafka.broker.headless.serviceName" -}}
-{{- printf "%s-headless" (include "kafka.fullname" .) }}
-{{- end }}
-
-{{/*
 kafka clusterId SecretName
 */}}
 {{- define "kafka.clusterId.SecretName" -}}
@@ -136,10 +130,10 @@ kafka clusterId SecretName
 kafka combinedMode
 */}}
 {{- define "kafka.combinedMode" -}}
-{{- if or (eq .Values.controller.replicas 0) .Values.broker.combinedMode.enabled -}}
-{{- print "true" -}}
-{{- else -}}
+{{- if .Values.controller.enabled -}}
 {{- print "false" -}}
+{{- else -}}
+{{- print "true" -}}
 {{- end -}}
 {{- end -}}
 
@@ -148,4 +142,42 @@ kafka clusterDomain
 */}}
 {{- define "kafka.clusterDomain" -}}
 {{- default "cluster.local" .Values.clusterDomain -}}
+{{- end -}}
+
+{{/*
+kafka broker headless serviceName
+*/}}
+{{- define "kafka.broker.headless.serviceName" -}}
+{{- printf "%s-headless" (include "kafka.fullname" .) }}
+{{- end }}
+
+
+{{/*
+kafka.controller.headless.serviceName
+*/}}
+{{- define "kafka.controller.headless.serviceName" -}}
+{{- printf "%s" (include "kafka.controller.fullname" .) }}
+{{- end }}
+
+{{/*
+kafka.controller.quorum.voters
+*/}}
+{{- define "kafka.controller.quorum.voters" -}}
+{{- $fullName := include "kafka.controller.fullname" . -}}
+{{- $serviceName := include "kafka.controller.headless.serviceName" . -}}
+{{- $replicaCount := int .Values.controller.replicaCount -}}
+{{- if not .Values.controller.enabled -}}
+  {{- $replicaCount = int .Values.broker.replicaCount -}}
+  {{- $fullName = include "kafka.broker.fullname" . -}}
+  {{- $serviceName = include "kafka.broker.headless.serviceName" . -}}
+{{- end -}}
+{{- $namespace := include "kafka.namespace" . -}}
+{{- $clusterDomain := include "kafka.clusterDomain" . -}}
+{{- $port := int .Values.controller.containerPort -}}
+{{- $suffix := printf "%s.%s.svc.%s:%d" $serviceName $namespace $clusterDomain $port -}}
+  {{- $servers := list -}}
+  {{- range $i := until (int $replicaCount) -}}
+    {{- $servers = printf "%d@%s-%d.%s" $i $fullName $i $suffix | append $servers -}}
+  {{- end -}}
+{{ join "," $servers }}
 {{- end -}}

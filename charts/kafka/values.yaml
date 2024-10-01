@@ -8,17 +8,15 @@ clusterDomain: "cluster.local"
 
 # It is recommended to use a random cluster id for each cluster.
 # cat /proc/sys/kernel/random/uuid | base64 | cut -b 1-22
-clusterId: "NDlmZWU5YTItYThjNi00Zj"
+clusterId: "YLlmZWU5YTItYThjNi00Zg"
 
 image:
   repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.6.1
-
-imagePullSecrets: []
+  tag: v3.6.2-abcb272
 
 rbac:
-  create: false
+  create: true
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -29,18 +27,31 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-securityContext: {}
+global:
+  podAnnotations: {}
+  podLabels: {}
+  imagePullSecrets: []
+  hostAliases: []
 
-containerPort:
-  controller: 9090
-  broker: 9092
-  brokerExternal: 9095
-  # external: 9095
+  ## Default affinity preset for all components
+  affinityPreset:
+    # -- Default pod anti-affinity rules. Either: `none`, `soft` or `hard`
+    podAntiAffinity: soft
+    # Node affinity rules
+    nodeAffinity:
+      # -- Default node affinity rules. Either: `none`, `soft` or `hard`
+      type: soft
+      # -- Default match expressions for node affinity
+      matchExpressions: []
+        # - key: topology.kubernetes.io/zone
+        #   operator: In
+        #   values:
+        #    - antarctica-east1
+        #    - antarctica-west1
 
 broker:
-  combinedMode:
-    enabled: true
   replicaCount: 1
+  containerPort: 9092
   terminationGracePeriodSeconds: 60
   heapOpts: "-Xms1024m -Xmx1024m"
   commonEnvs: []
@@ -56,7 +67,7 @@ broker:
   ## broker.persistence
   persistence:
     enabled: true
-    size: 30Gi
+    size: 20Gi
     # storageClass: "gp2"
 
   ## broker.resources
@@ -65,7 +76,7 @@ broker:
       cpu: 4
       memory: 16Gi
     requests:
-      cpu: 200m
+      cpu: 300m
       memory: 2Gi
   
   ## broker.readinessProbe
@@ -84,6 +95,7 @@ broker:
 
   ## broker.podAnnotations
   podAnnotations: {}
+  podLabels: {}
 
   ## broker.antiAffinity
   antiAffinity: soft
@@ -106,23 +118,30 @@ broker:
   ## broker.external
   external:
     enabled: false
-    # type: "NodePort"
+    containerPort: 9095
+    # hostPort: 9095
+    ## broker.external.type -- "NodePort" "LoadBalancer" "HostPort" or "PodIP"
+    type: "NodePort"
+    nodePorts: []
+    externalDns:
+      enabled: false
+      # domain: ""
+      # hostnamePrefixOverride: ""
+      annotations: {}
+    autoDiscovery:
+      enabled: false
+      image:
+        repository: kafkace/kubectl
+        pullPolicy: IfNotPresent
+        tag: v1.30
     service:
-      ## broker.external.service.type - "NodePort" or "LoadBalancer"
-      type: "NodePort"
       annotations: {}
       port: 9095
-    nodePorts:
-      - 31050
-    domainSuffix: ".kafka.example.com"
-    ## broker.external.hosts - 对外暴露的主机名 (域名或IP)，优先级高于 domainSuffix
-    # hosts:
-    #   - broker-01.kafka.example.com
-    
 
 controller:
-  enabled: true
-  replicaCount: 0
+  enabled: false
+  replicaCount: 1
+  containerPort: 9091
   terminationGracePeriodSeconds: 60
   heapOpts: "-Xms512m -Xmx512m"
   commonEnvs: []
@@ -176,8 +195,8 @@ controller:
 
   ## controller.service
   service:
-    type: ClusterIP
-    port: 9090
+    annotations: {}
+    labels: {}
 
 exporter:
   enabled: false
@@ -186,7 +205,10 @@ exporter:
     repository: danielqsj/kafka-exporter
     pullPolicy: IfNotPresent
     tag: "latest"
-  podAnnotations: {}
+  podAnnotations:
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9308"
+    # prometheus.io/scrape: "true"
   podLabels: {}
   nodeSelector: {}
   tolerations: []
@@ -211,7 +233,14 @@ ui:
   image:
     repository: provectuslabs/kafka-ui
     pullPolicy: IfNotPresent
-    tag: v0.7.1
+    tag: v0.7.2
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  ## ui.resources
   resources:
     limits:
       cpu: 1
@@ -240,17 +269,10 @@ ui:
   ## ui.ingress
   ingress:
     enabled: false
-    className: ""
+    ingressClassName: ""
     annotations: {}
       # nginx.ingress.kubernetes.io/whitelist-source-range: 10.0.0.0/8,192.168.0.0/16
-    hosts:
-      - host: kafka-ui.example.com
-    tls: []
-    #  - secretName: kafka-example-tls
-    #    hosts:
-    #      - kafka-ui.example.com
-
-  ## ui.nodeSelector
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+    hostname: "kafka-ui.example.com"
+    tls:
+      secretName: kafka-example-tls
+    

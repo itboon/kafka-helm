@@ -1,6 +1,8 @@
 #!/bin/sh
 
-export KAFKA_CONF_FILE="/etc/kafka/server.properties"
+export KAFKA_CONF_FILE="${KAFKA_CONF_FILE:=/etc/kafka/server.properties}"
+export KAFKA_BROKER_LISTENER_PORT="${KAFKA_BROKER_LISTENER_PORT:=9092}"
+export KAFKA_CONTROLLER_LISTENER_PORT="${KAFKA_CONTROLLER_LISTENER_PORT:=19091}"
 export KAFKA_BASE_CONF_FILE="${KAFKA_BASE_CONF_FILE:=/etc/kafka/base-cm/server.properties}"
 
 export KAFKA_CFG_LOG_DIR="$KAFKA_HOME/data"
@@ -136,16 +138,11 @@ set_kafka_cfg_default() {
   if [ -z "$KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR" ]; then
     export KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR="1"
   fi
-  ##
-  ## KAFKA_CONTROLLER_LISTENER_PORT default value: 19091
-  local ctl_port="${KAFKA_CONTROLLER_LISTENER_PORT-19091}"
-  ## KAFKA_BROKER_LISTENER_PORT default value: 9092
-  local broker_port="${KAFKA_BROKER_LISTENER_PORT-9092}"
   if [ -z "$KAFKA_CFG_LISTENERS" ]; then
-    export KAFKA_CFG_LISTENERS="CONTROLLER://:${ctl_port},PLAINTEXT://:${broker_port}"
+    export KAFKA_CFG_LISTENERS="CONTROLLER://:${KAFKA_CONTROLLER_LISTENER_PORT},PLAINTEXT://:${KAFKA_BROKER_LISTENER_PORT}"
   fi
   if [ -z "$KAFKA_CFG_CONTROLLER_QUORUM_VOTERS" ]; then
-    export KAFKA_CFG_CONTROLLER_QUORUM_VOTERS="${KAFKA_CFG_NODE_ID}@127.0.0.1:${ctl_port}"
+    export KAFKA_CFG_CONTROLLER_QUORUM_VOTERS="${KAFKA_CFG_NODE_ID}@127.0.0.1:${KAFKA_CONTROLLER_LISTENER_PORT}"
   fi
   if [ -z "$KAFKA_CFG_ADVERTISED_LISTENERS" ]; then
     init_default_advertised_listeners

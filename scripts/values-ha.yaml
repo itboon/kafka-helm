@@ -1,0 +1,18 @@
+nameOverride: "kafka"
+
+broker:
+  replicaCount: 3
+  config:
+    num.partitions: "6"
+    default.replication.factor: "3"
+  resources:
+    limits:
+      cpu: 4
+      memory: 16Gi
+    requests:
+      cpu: 500m
+      memory: 2Gi
+
+controller:
+  enabled: true
+  replicaCount: 3

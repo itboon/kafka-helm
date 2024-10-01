@@ -14,7 +14,7 @@ RUN set -ex \
   ; mv kafka_* kafka
 
 # container
-FROM eclipse-temurin:21-jre-noble
+FROM eclipse-temurin:17-jre-focal
 
 ENV KAFKA_HOME="/opt/kafka" \
     KAFKA_CONF_FILE="/etc/kafka/server.properties"

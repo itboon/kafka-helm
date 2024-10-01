@@ -14,12 +14,18 @@ RUN set -ex \
   ; mv kafka_* kafka
 
 # container
-FROM eclipse-temurin:17-jre-focal
+FROM eclipse-temurin:21-jre-noble
 
 ENV KAFKA_HOME="/opt/kafka" \
     KAFKA_CONF_FILE="/etc/kafka/server.properties"
 
 RUN set -ex \
+  ; if id -nu 1000 &> /dev/null ; then \
+    user_name=$(id -nu 1000) ; \
+    echo user_name: $user_name ; \
+    usermod -u 3000 $user_name ; \
+    groupmod -g 3000 $user_name ; \
+  fi \
   ; useradd kafka --uid 1000 -m -s /bin/bash \
   ; usermod -g root kafka \
   ; mkdir -pv "/etc/kafka" && chown -R 1000:1000 "/etc/kafka"

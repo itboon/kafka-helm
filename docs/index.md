@@ -1,6 +1,6 @@
 # Welcome
 
-- [GitHub](https://github.com/itboon/kafka-docker)
+- [GitHub](https://github.com/itboon/kafka-helm)
 - [Docker Hub](https://hub.docker.com/r/kafkace/kafka)
 
 ## 关于 Apache Kafka

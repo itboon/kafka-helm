@@ -55,7 +55,6 @@ services:
 | broker.external.enabled | bool | `false` | 是否开启集群外访问 |
 | broker.external.type | string | `NodePort` | `NodePort` `LoadBalancer` `HostPort` or `PodIP` |
 | broker.external.service.annotations | object | `{}` | External serivce annotations, 可用于配置 `LoadBalancer` |
-
 | broker.external.autoDiscovery.enabled | bool | `false` | 用于自动发现 `NodePort` 端口号和 `LoadBalancer` 地址 |
 | broker.external.externalDns.enabled | bool | `false` | 开启 [ExternalDNS]<https://github.com/kubernetes-sigs/external-dns> 为外部访问地址添加公共域名解析 |
 | broker.external.externalDns.domain | string | `""` | ExternalDNS 域名 |

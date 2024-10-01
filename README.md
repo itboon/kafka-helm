@@ -1,54 +1,22 @@
-[![CI](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/itboon/kafka-docker/actions/workflows/docker-publish.yml)
-[![Docker pulls](https://img.shields.io/docker/pulls/kafkace/kafka)](https://hub.docker.com/r/kafkace/kafka)
-![Docker Iamge](https://img.shields.io/docker/image-size/kafkace/kafka)
+# Kafka helm chart
 
-- [GitHub](https://github.com/itboon/kafka-docker)
-- [Docker Hub](https://hub.docker.com/r/kafkace/kafka)
+https://github.com/itboon/kafka-helm
 
-## Docker 启动 Kafka
+## Prerequisites
 
-快速启动 Kafka:
+- Kubernetes 1.22+
+- Helm 3.3+
 
-``` shell
-docker run -d --network host --name demo-kafka-server kafkace/kafka:v3.5.2
-```
-
-### 数据持久化
-
-数据存储路径 `/opt/kafka/data`，挂载数据卷:
+## 获取 helm 仓库
 
 ``` shell
-docker volume create demo-kafka-data
-
-docker run -d \
-  --network host \
-  --name demo-kafka-server \
-  -v demo-kafka-data:/opt/kafka/data \
-  kafkace/kafka:v3.5.2
-
+helm repo add kafka-repo https://helm-charts.itboon.top/kafka
+helm repo update kafka-repo
 ```
 
-### docker compose
+## 部署 Kafka
 
-``` yaml
-version: "3"
-
-volumes:
-  kafka-data: {}
-
-services:
-  kafka:
-    image: kafkace/kafka:v3.5.2
-    restart: always
-    network_mode: "host"
-    volumes:
-      - kafka-data:/opt/kafka/data
-    environment:
-      - KAFKA_HEAP_OPTS=-Xmx1024m -Xms1024m
-
-```
-
-## Helm 部署 Kafka
+### 部署单节点 Kafka 集群
 
 ``` shell
 ## 下面的部署案例关闭了持久化存储，仅作为演示
@@ -67,9 +35,67 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-## 文档目录
+### 将 broker 和 controller 分开部署
 
-- [通过环境变量配置 Kafka 参数](https://github.com/itboon/kafka-docker/blob/main/docs/env.md)
-- [Kafka 高级网络配置](https://github.com/itboon/kafka-docker/blob/main/docs/network.md)
-- [Helm 部署 kafka](https://github.com/itboon/kafka-docker/blob/main/docs/helm.md)
-- [Kubernetes 集群外访问](https://github.com/itboon/kafka-docker/blob/main/docs/external.md)
+``` shell
+helm upgrade --install kafka \
+  --namespace kafka-demo \
+  --create-namespace \
+  --set broker.combinedMode.enabled="false" \
+  --set controller.replicaCount="1" \
+  --set broker.replicaCount="1" \
+  kafka-repo/kafka
+```
+
+> `broker.combinedMode.enabled` 混部模式，即进程同时具有 broker + controller 角色，单节点服务器启动一个 Pod 即可。`kafka-repo/kafka` 默认开启混部，`kafka-repo/kafka-ha` 默认关闭混部。
+
+### 部署高可用集群
+
+``` shell
+## kafka-repo/kafka-ha 默认部署 3 controller + 3 broker
+helm upgrade --install kafka \
+  --namespace kafka-demo \
+  --create-namespace \
+  kafka-repo/kafka-ha
+```
+
+``` shell
+## 调整集群资源配额
+helm upgrade --install kafka \
+  --namespace kafka-demo \
+  --create-namespace \
+  --set controller.replicaCount="3" \
+  --set broker.replicaCount="3" \
+  --set broker.heapOpts="-Xms4096m -Xmx4096m" \
+  --set broker.resources.requests.memory="8Gi" \
+  --set broker.resources.limits.memory="16Gi" \
+  kafka-repo/kafka-ha
+```
+
+> More values please refer to [examples/values-production.yml](https://github.com/sir5kong/kafka-docker/raw/main/examples/values-production.yml)
+
+## Kafka Broker 配置
+
+```yaml
+## 单节点 Broker 配置
+broker:
+  replicaCount: 1
+  config:
+    num.partitions: "2"
+```
+
+```yaml
+## 高可用集群推荐配置
+broker:
+  replicaCount: 3
+  config:
+    num.partitions: "6"
+    default.replication.factor: "3"
+    min.insync.replicas: "2"
+```
+
+> `broker.config` 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
+
+## 集群外访问
+
+请参考 <https://github.com/itboon/kafka-helm/blob/main/docs/external.md>

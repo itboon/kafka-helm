@@ -1,0 +1,91 @@
+name: Docker Publish For Kubectl
+
+on:
+  workflow_dispatch: ## on button click
+  push:
+    paths:
+      - docker/kubectl/Dockerfile
+      - '.github/workflows/docker-kubectl.yml'
+    branches:
+      - main
+      - stable
+      - kubectl-v[0-9]*
+    tags:
+      - kubectl-v[0-9]*
+
+env:
+  CR_REPO: kafkace/kubectl
+  APP_VERSION: "1.30"
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      - 
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - 
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - 
+        name: Set outputs
+        id: vars
+        env:
+          DOCKERHUB_TOKEN: "${{ secrets.DOCKERHUB_TOKEN }}"
+        run: |
+          sha_short=$(git rev-parse --short HEAD)
+          echo "sha_short=$sha_short" >> $GITHUB_OUTPUT
+          echo "[env] GITHUB_REF_NAME: $GITHUB_REF_NAME"
+          if echo "$GITHUB_REF_NAME" | grep -E 'kubectl-v[0-9.]+(-.*)?'; then
+            app_version=$(echo "$GITHUB_REF_NAME" | cut -d "-" -f2 | sed 's/^v//')
+            if [ "$?"" -eq "0" ]; then
+              echo "is_release=true" >> $GITHUB_OUTPUT
+              echo "app_version=${app_version}" >> $GITHUB_OUTPUT
+              if [ "$app_version" = "$APP_VERSION" ]; then
+                echo "latest_or_sha=latest" >> $GITHUB_OUTPUT
+              fi
+            fi
+          fi
+          if echo "$DOCKERHUB_TOKEN" | grep -Eo '^[a-zA-Z]' > /dev/null ; then
+            echo "dockerhub_token_ok=true" >> $GITHUB_OUTPUT
+          else
+            exit "50"
+          fi
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v3
+        if: steps.vars.outputs.dockerhub_token_ok == 'true'
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Docker build testing
+        uses: docker/build-push-action@v5
+        if: github.ref_name == 'main'
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ vars.CR_REPO }}:snapshot
+      -
+        name: Build and push
+        uses: docker/build-push-action@v5
+        if: steps.vars.outputs.is_release == 'true'
+        # env:
+        #   APP_VERSION: '${{ steps.vars.outputs.app_version }}'
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            app_version=${{ steps.vars.outputs.app_version }}
+          tags: |
+            ${{ vars.CR_REPO }}:v${{ steps.vars.outputs.app_version }}

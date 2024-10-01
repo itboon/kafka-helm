@@ -72,13 +72,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ vars.CR_REPO }}:snapshot
+            ${{ env.CR_REPO }}:snapshot
       -
         name: Build and push
         uses: docker/build-push-action@v5
         if: steps.vars.outputs.is_release == 'true'
-        # env:
-        #   APP_VERSION: '${{ steps.vars.outputs.app_version }}'
         with:
           context: docker/kubectl
           platforms: linux/amd64,linux/arm64
@@ -88,4 +86,4 @@ jobs:
           build-args: |
             app_version=${{ steps.vars.outputs.app_version }}
           tags: |
-            ${{ vars.CR_REPO }}:v${{ steps.vars.outputs.app_version }}
+            ${{ env.CR_REPO }}:v${{ steps.vars.outputs.app_version }}

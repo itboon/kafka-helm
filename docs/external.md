@@ -53,13 +53,15 @@ services:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | broker.external.enabled | bool | `false` | 是否开启集群外访问 |
-| broker.external.service.type | string | `NodePort` | `NodePort` or `LoadBalancer` |
-| broker.external.service.annotations | object | `{}` | External serivce annotations，常用于配置 `LoadBalancer`  |
-| broker.external.nodePorts | list | `[]` | 如果使用 `NodePort` 模式，至少提供一个端口号，如果端口号数量小于 Broker 副本数，则端口号自动递增 |
-| broker.external.domainSuffix | string | `.kafka.example.com` | 用域名后缀为 Broker 自动生成主机名 `POD_NAME` + `域名后缀`，例如 `kafka-broker-01.kafka.example.com` |
-| broker.external.hosts | list | `[]` | Broker 对外的主机名，可以是域名或IP地址，需要为每个 Broker 分配一个主机名 |
+| broker.external.type | string | `NodePort` | `NodePort` `LoadBalancer` `HostPort` or `PodIP` |
+| broker.external.service.annotations | object | `{}` | External serivce annotations, 可用于配置 `LoadBalancer` |
 
-> 如果使用 `LoadBalancer` 模式，则需要为 Broker 提供域名后缀 `broker.external.domainSuffix` 或者主机名 `broker.external.hosts`，后者优先级更高。如果主机名数量小于 Broker 副本数，仍然优先为 Broker 分配 hosts 主机名，不够的用域名后缀自动生成。
+| broker.external.autoDiscovery.enabled | bool | `false` | 用于自动发现 `NodePort` 端口号和 `LoadBalancer` 地址 |
+| broker.external.externalDns.enabled | bool | `false` | 开启 [ExternalDNS]<https://github.com/kubernetes-sigs/external-dns> 为外部访问地址添加公共域名解析 |
+| broker.external.externalDns.domain | string | `""` | ExternalDNS 域名 |
+| broker.external.externalDns.annotations | object | `{}` | ExternalDNS service annotations |
+
+### values 案例
 
 ``` yaml
 ## NodePort example
@@ -70,15 +72,12 @@ broker:
     service:
       type: "NodePort"
       annotations: {}
-    nodePorts:
-      - 31050
-      - 31051
-      - 31052
+    autoDiscovery:
+      enabled: true
 ```
 
 ``` yaml
 ## LoadBalancer example
-## 单节点集群推荐使用主机名
 broker:
   replicaCount: 1
   external:
@@ -86,13 +85,39 @@ broker:
     service:
       type: "LoadBalancer"
       annotations: {}
-    hosts:
-      - kafka-dev.example.com
+    autoDiscovery:
+      enabled: true
 ```
 
+### ExternalDNS 案例
+
+ExternalDNS 需要另行部署，参考文档:
+
+- [Setting up ExternalDNS for Services on AWS]<https://kubernetes-sigs.github.io/external-dns/latest/docs/tutorials/aws/>
+
+假如 `my-external-dns.example.com` 是 ExternalDNS 管理的域名， Helm Release 是 `kafka`，以下分别是 NodePort 和 LoadBalancer 部署案例:
+
 ``` yaml
-## LoadBalancer example
-## 高可用集群推荐用域名后缀
+## ExternalDNS with NodePort
+broker:
+  replicaCount: 3
+  external:
+    enabled: true
+    service:
+      type: "NodePort"
+      annotations: {}
+    externalDns:
+      enabled: true
+      domain: "kafka-dev.my-external-dns.example.com"
+      annotations: {}
+
+## broker 外部地址: kafka-broker-0.kafka-dev.my-external-dns.example.com
+```
+
+> LoadBalancer ExternalDNS 作用在 external service，其他类型 ExternalDNS 作用在 headless service， 所以用法有差异。
+
+``` yaml
+## ExternalDNS with LoadBalancer
 broker:
   replicaCount: 3
   external:
@@ -100,7 +125,29 @@ broker:
     service:
       type: "LoadBalancer"
       annotations: {}
-    domainSuffix: ".kafka.example.com"
+    externalDns:
+      enabled: true
+      domain: "my-external-dns.example.com"
+      annotations: {}
+
+## broker 外部地址: kafka-broker-0.my-external-dns.example.com
 ```
 
-> 部署成功后请完成域名解析配置。
+``` yaml
+## ExternalDNS with LoadBalancer
+broker:
+  replicaCount: 3
+  external:
+    enabled: true
+    service:
+      type: "LoadBalancer"
+      annotations: {}
+    externalDns:
+      enabled: true
+      domain: "my-external-dns.example.com"
+      ## hostnamePrefixOverride -- 仅仅适用 LoadBalancer 类型， 默认前缀是 pod name
+      hostnamePrefixOverride: "kafka-foo"
+      annotations: {}
+
+## broker 外部地址: kafka-foo-0.my-external-dns.example.com
+```

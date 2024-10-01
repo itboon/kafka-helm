@@ -1,6 +1,6 @@
 # Kafka helm chart
 
-https://github.com/itboon/kafka-docker
+https://github.com/itboon/kafka-helm
 
 ## Prerequisites
 
@@ -98,4 +98,4 @@ broker:
 
 ## 集群外访问
 
-请参考 <https://github.com/itboon/kafka-docker/blob/main/docs/external.md>
+请参考 <https://github.com/itboon/kafka-helm/blob/main/docs/external.md>

@@ -87,23 +87,17 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         volumeMounts:
-        - mountPath: /opt/kafka/data
+        - mountPath: {{ .persistence.mountPath }}
           name: data
           subPath: data
-        - mountPath: /opt/kafka/logs
+        - mountPath: {{ .persistence.logsMountPath | default "/opt/kafka/logs" }}
           name: data
           subPath: logs
         - mountPath: "/etc/kafka/base-cm"
           name: base-cm
-        # - mountPath: "kafka.broker.baseConfigFile"
-        #   name: base-config
-        #   subPath: server.properties
         - mountPath: /entrypoint.sh
           name: entrypoint-sh
           subPath: entrypoint.sh
-        # - mountPath: /etc/kafka/broker/config-init.sh
-        #   name: config-init-sh
-        #   subPath: config-init.sh
         {{- if eq (include "broker.external.autoDiscovery.enabled" $) "true" }}
         - name: auto-discovery-shared
           mountPath: /init-shared

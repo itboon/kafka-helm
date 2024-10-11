@@ -68,6 +68,8 @@ broker:
   persistence:
     enabled: true
     size: 20Gi
+    mountPath: /var/lib/kafka/data
+    logsMountPath: /opt/kafka/logs
     # storageClass: "gp2"
 
   ## broker.resources

@@ -3,6 +3,20 @@ entries:
   kafka:
   - apiVersion: v2
     appVersion: v3.7.1
+    created: "2024-10-11T12:43:44.390279254Z"
+    description: Helm chart for Apache Kafka.
+    digest: 5b52885bcd42e21bbf7300783e7f185ff23b16fa56f4ea50ac05181341119620
+    keywords:
+    - kafka
+    - streaming
+    - kraft
+    name: kafka
+    type: application
+    urls:
+    - https://github.com/itboon/kafka-helm/releases/download/kafka-chart-18.0.0-rc.0/kafka-18.0.0-rc.0.tgz
+    version: 18.0.0-rc.0
+  - apiVersion: v2
+    appVersion: v3.7.1
     created: "2024-10-01T15:24:31.61303314Z"
     description: Helm chart for Apache Kafka.
     digest: dd2f0c8fcafc4c9a07eed001838710755aa2920761e00b9d5757b1bd9a8da268
@@ -449,4 +463,4 @@ entries:
     urls:
     - https://github.com/itboon/kafka-docker/releases/download/kafka-ha-chart-13.3.0/kafka-ha-13.3.0.tgz
     version: 13.3.0
-generated: "2024-10-01T15:24:31.804976395Z"
+generated: "2024-10-11T12:43:44.390579043Z"

@@ -1,25 +1,19 @@
 #!/bin/sh
 
+export KAFKA_HOME="${KAFKA_HOME:=/opt/kafka}"
+
 export KAFKA_CONF_FILE="${KAFKA_CONF_FILE:=/etc/kafka/server.properties}"
 export KAFKA_BROKER_LISTENER_PORT="${KAFKA_BROKER_LISTENER_PORT:=9092}"
 export KAFKA_CONTROLLER_LISTENER_PORT="${KAFKA_CONTROLLER_LISTENER_PORT:=19091}"
 export KAFKA_BASE_CONF_FILE="${KAFKA_BASE_CONF_FILE:=/etc/kafka/base-cm/server.properties}"
 
-export KAFKA_CFG_LOG_DIR="$KAFKA_HOME/data"
-
-if [ -z "$KAFKA_HOME" ]; then
-  export KAFKA_HOME="/opt/kafka"
-  export KAFKA_CFG_LOG_DIR="$KAFKA_HOME/data"
-fi
-if [ ! -d "$KAFKA_HOME" ]; then
-  mkdir -p "$KAFKA_HOME"
-fi
+export KAFKA_CFG_LOG_DIR="${KAFKA_CFG_LOG_DIR:=/var/lib/kafka/data}"
 
 check_runtime() {
   java -version
   if [ $? -ne 0 ]; then
     echo "[ERROR] Missing java"
-    exit "500"
+    exit "50"
   fi
 }
 
@@ -70,15 +64,6 @@ init_nodeid() {
   fi
   if [ -z "$KAFKA_CFG_NODE_ID" ]; then
     export KAFKA_CFG_NODE_ID="1"
-  fi
-}
-
-take_file_ownership() {
-  if [ "$(id -u)" = "0" ]; then
-    chown -R 1000:1000 "$KAFKA_HOME"
-    if [ -d "$KAFKA_CFG_LOG_DIR" ]; then
-      chown -R 1000:1000 "$KAFKA_CFG_LOG_DIR"
-    fi
   fi
 }
 
@@ -158,7 +143,7 @@ init_server_conf() {
   if [ ! -f "$KAFKA_CONF_FILE" ]; then
     mkdir -p "$(dirname $KAFKA_CONF_FILE)"
     if [ -f "$KAFKA_BASE_CONF_FILE" ]; then
-      cat "$KAFKA_BASE_CONF_FILE" > $KAFKA_CONF_FILE
+      cat "$KAFKA_BASE_CONF_FILE" | grep -Ev '^log.dirs? *=' > $KAFKA_CONF_FILE
     fi
     touch "$KAFKA_CONF_FILE"
   fi
@@ -171,22 +156,43 @@ init_server_conf() {
   done
 }
 
-reset_log_dirs() {
-  ## protect log.dirs
-  if [ "$KAFKA_LOG_DIR_LOCKED" = "false" ]; then
-    return
+take_logdir_ownership_if_needed() {
+  local dir="$1"
+  if [ -d "$dir" ]; then
+    if [ "$KAFKA_LOGDIR_CHOWN_FORCE" = "true" ]; then
+      chown -R 1000:1000 "$dir"
+      echo "ls -alh $dir" ; ls -alh "$dir"
+    elif [ "$(stat -c "%u" $dir)" != "1000" ]; then
+      chown -R 1000:1000 "$dir"
+      echo "ls -alh $dir" ; ls -alh "$dir"
+    fi
   fi
-  sed -i "/^log.dir *=/d" "$KAFKA_CONF_FILE"
-  update_server_conf "log.dirs" "$KAFKA_CFG_LOG_DIR"
 }
 
-start_server() {
-  check_runtime
-  reset_log_dirs
-  if [ -n "$KAFKA_HEAP_OPTS" ]; then
-    export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} ${KAFKA_HEAP_OPTS}"
+init_kafka_dirs_ownership() {
+  if [ "$(id -u)" != "0" ]; then
+    return
   fi
-  if [ ! -f "$KAFKA_CFG_LOG_DIR/meta.properties" ]; then
+  if [ -n "$KAFKA_CFG_LOG_DIRS" ]; then
+    unset IFS
+    echo "$KAFKA_CFG_LOG_DIRS" | tr ',' '\n' | while read dir ; do
+      take_logdir_ownership_if_needed "$dir"
+    done
+  elif [ -d "$KAFKA_CFG_LOG_DIR" ]; then
+    take_logdir_ownership_if_needed "$KAFKA_CFG_LOG_DIR"
+  fi
+  if [ "$KAFKA_HOMEDIR_CHOWN_FORCE" = "true" ]; then
+    chown -R 1000:1000 "$KAFKA_HOME"
+  fi
+  take_logdir_ownership_if_needed "$KAFKA_HOME/logs"
+}
+
+init_storage_format_if_needed() {
+  local logdir="$KAFKA_CFG_LOG_DIR"
+  if [ -n "$KAFKA_CFG_LOG_DIRS" ]; then
+    logdir=$(echo "$KAFKA_CFG_LOG_DIRS" | cut -d "," -f 1)
+  fi
+  if [ ! -f "$logdir/meta.properties" ]; then
     echo ">>> Format Log Directories <<<"
     if [ -z "$KAFKA_CLUSTER_ID" ]; then
       echo "Generate a Cluster UUID"
@@ -201,11 +207,19 @@ start_server() {
         -t $KAFKA_CLUSTER_ID -c "$KAFKA_CONF_FILE"
     fi
   fi
+}
+
+start_server() {
+  check_runtime
+  init_server_conf
+  init_kafka_dirs_ownership
+  if [ -n "$KAFKA_HEAP_OPTS" ]; then
+    export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} ${KAFKA_HEAP_OPTS}"
+  fi
+  init_storage_format_if_needed
   run_as_other_user_if_needed "${KAFKA_HOME}/bin/kafka-server-start.sh" "$KAFKA_CONF_FILE"
 }
 
-init_server_conf
-take_file_ownership
 if [ "$@" = "start" ]; then
   start_server
 else

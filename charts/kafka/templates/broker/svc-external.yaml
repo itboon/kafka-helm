@@ -26,10 +26,7 @@ metadata:
   {{- end }}
   {{- if eq (include "broker.externalDns.enabled" $) "true" }}
   {{- if eq $.Values.broker.external.type "LoadBalancer" }}
-    {{- $hostname := printf "%s.%s" $targetPod (include "broker.externalDns.domain" $) }}
-    {{- with $.Values.broker.external.externalDns.hostnamePrefixOverride }}
-    {{- $hostname = printf "%s-%d.%s" . (int $i) (include "broker.externalDns.domain" $) }}
-    {{- end }}
+    {{- $hostname := printf "%s-%d.%s" (include "broker.externalDns.hostnamePrefix" $) (int $i) (include "broker.externalDns.domain" $) }}
     external-dns.alpha.kubernetes.io/hostname: {{ $hostname | quote }}
     {{- with $.Values.broker.external.externalDns.annotations }}
     {{- toYaml . | nindent 4 }}

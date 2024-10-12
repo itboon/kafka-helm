@@ -127,8 +127,8 @@ broker:
     nodePorts: []
     externalDns:
       enabled: false
-      # domain: ""
-      # hostnamePrefixOverride: ""
+      domain: ""
+      hostnamePrefix: ""
       annotations: {}
     autoDiscovery:
       enabled: false

@@ -57,6 +57,17 @@ broker.externalDns.domain
 {{- end -}}
 
 {{/*
+broker.externalDns.hostnamePrefix
+*/}}
+{{- define "broker.externalDns.hostnamePrefix" -}}
+{{- if .Values.broker.external.externalDns.hostnamePrefix -}}
+{{- .Values.broker.external.externalDns.hostnamePrefix -}}
+{{- else -}}
+{{- printf "%s-%s" (include "kafka.fullname" .) .Release.Namespace -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 broker.advertisedListeners.internal
 */}}
 {{- define "broker.advertisedListeners.internal" -}}
@@ -79,8 +90,7 @@ broker.advertisedListeners.external
   {{- $port = .hostPort | default .containerPort -}}
 {{- end -}}
 {{- if eq (include "broker.externalDns.enabled" $) "true" -}}
-  {{- $domain := (include "broker.externalDns.domain" $) -}}
-  {{- $addr = printf "$(POD_NAME).%s" $domain -}}
+  {{- $addr = printf "$(POD_NAME).%s.%s" (include "broker.externalDns.hostnamePrefix" $) (include "broker.externalDns.domain" $) -}}
 {{- end -}}
 {{- end -}}
 {{- printf "EXTERNAL://%s:%d" $addr ($port | int) -}}
@@ -179,12 +189,11 @@ broker.externalEnv
   value: {{ include "broker.fullNodePorts" $ | quote }}
 {{- end }}
 {{- if eq .type "LoadBalancer" }}
-  {{- $externalDnsEnabled := eq (include "broker.externalDns.enabled" $) "true" }}
-  {{- if and $externalDnsEnabled .externalDns.hostnamePrefixOverride }}
+  {{- if eq (include "broker.externalDns.enabled" $) "true" }}
 - name: KAFKA_EXTERNAL_DOMAIN
   value: {{ include "broker.externalDns.domain" $ }}
 - name: KAFKA_EXTERNAL_HOSTNAME_PREFIX
-  value: {{ .externalDns.hostnamePrefixOverride | quote }}
+  value: {{ include "broker.externalDns.hostnamePrefix" $ }}
   {{- end }}
 {{- end }}
 {{- end }}

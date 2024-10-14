@@ -19,7 +19,8 @@ metadata:
   {{- $validExternalType := list "PodIP" "NodePort" "HostPort" }}
   {{- $externalType := $.Values.broker.external.type }}
   {{- if has $externalType $validExternalType }}
-    external-dns.alpha.kubernetes.io/hostname: {{ include "broker.externalDns.domain" $ }}
+    {{- $hostname := printf "%s.%s" (include "broker.externalDns.hostnamePrefix" $) (include "broker.externalDns.domain" $) }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $hostname | quote }}
     {{- if or (eq $externalType "NodePort") (eq $externalType "HostPort") }}
     external-dns.alpha.kubernetes.io/endpoints-type: HostIP
     {{- end }}

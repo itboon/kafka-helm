@@ -60,6 +60,8 @@ broker:
   persistence:
     enabled: true
     size: 20Gi
+    mountPath: /var/lib/kafka/data
+    logsMountPath: /opt/kafka/logs
     # storageClass: "gp2"
   ## broker.resources
   resources:
@@ -108,8 +110,8 @@ broker:
     nodePorts: []
     externalDns:
       enabled: false
-      # domain: ""
-      # hostnamePrefixOverride: ""
+      domain: ""
+      hostnamePrefix: ""
       annotations: {}
     autoDiscovery:
       enabled: false

@@ -57,7 +57,8 @@ services:
 | broker.external.service.annotations | object | `{}` | External serivce annotations, 可用于配置 `LoadBalancer` |
 | broker.external.autoDiscovery.enabled | bool | `false` | 用于自动发现 `NodePort` 端口号和 `LoadBalancer` 地址 |
 | broker.external.externalDns.enabled | bool | `false` | 开启 [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) 为外部访问地址添加公共域名解析 |
-| broker.external.externalDns.domain | string | `""` | ExternalDNS 域名 |
+| broker.external.externalDns.domain | string | `""` | ExternalDNS 管理的域名 |
+| broker.external.externalDns.hostnamePrefix | string | `""` | `<releaseName>-<Namespace>` |
 | broker.external.externalDns.annotations | object | `{}` | ExternalDNS service annotations |
 
 ### values 案例
@@ -65,7 +66,6 @@ services:
 ``` yaml
 ## NodePort example
 broker:
-  replicaCount: 3
   external:
     enabled: true
     service:
@@ -78,7 +78,6 @@ broker:
 ``` yaml
 ## LoadBalancer example
 broker:
-  replicaCount: 1
   external:
     enabled: true
     service:
@@ -99,7 +98,6 @@ ExternalDNS 需要另行部署，参考文档:
 ``` yaml
 ## ExternalDNS with NodePort
 broker:
-  replicaCount: 3
   external:
     enabled: true
     service:
@@ -107,7 +105,7 @@ broker:
       annotations: {}
     externalDns:
       enabled: true
-      domain: "kafka-dev.my-external-dns.example.com"
+      domain: "my-external-dns.example.com"
       annotations: {}
 
 ## broker 外部地址: kafka-broker-0.kafka-dev.my-external-dns.example.com
@@ -118,7 +116,6 @@ broker:
 ``` yaml
 ## ExternalDNS with LoadBalancer
 broker:
-  replicaCount: 3
   external:
     enabled: true
     service:
@@ -132,10 +129,10 @@ broker:
 ## broker 外部地址: kafka-broker-0.my-external-dns.example.com
 ```
 
+#### hostnamePrefix
+
 ``` yaml
-## ExternalDNS with LoadBalancer
 broker:
-  replicaCount: 3
   external:
     enabled: true
     service:
@@ -144,9 +141,24 @@ broker:
     externalDns:
       enabled: true
       domain: "my-external-dns.example.com"
-      ## hostnamePrefixOverride -- 仅仅适用 LoadBalancer 类型， 默认前缀是 pod name
-      hostnamePrefixOverride: "kafka-foo"
+      hostnamePrefix: "kafka-foo"
       annotations: {}
 
 ## broker 外部地址: kafka-foo-0.my-external-dns.example.com
+```
+
+``` yaml
+broker:
+  external:
+    enabled: true
+    service:
+      type: "NodePort"
+      annotations: {}
+    externalDns:
+      enabled: true
+      domain: "my-external-dns.example.com"
+      hostnamePrefix: "kafka-foo"
+      annotations: {}
+
+## broker 外部地址: kafka-broker-0.kafka-foo.my-external-dns.example.com
 ```

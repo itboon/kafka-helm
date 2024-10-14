@@ -98,4 +98,16 @@ broker:
 
 ## 集群外访问
 
-请参考 <https://github.com/itboon/kafka-helm/blob/main/docs/external.md>
+```yaml
+## NodePort example
+broker:
+  external:
+    enabled: true
+    service:
+      type: "NodePort"
+      annotations: {}
+    autoDiscovery:
+      enabled: true
+```
+
+更多集群外案例请参考 <https://github.com/itboon/kafka-helm/blob/main/docs/external.md>

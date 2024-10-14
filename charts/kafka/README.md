@@ -35,19 +35,21 @@ helm upgrade --install kafka \
   kafka-repo/kafka
 ```
 
-### 将 broker 和 controller 分开部署
+### 独立部署 controller 模块
+
+生产环境推荐独立部署 controller 模块， 方便 broker 横向扩缩容。
 
 ``` shell
 helm upgrade --install kafka \
   --namespace kafka-demo \
   --create-namespace \
-  --set broker.combinedMode.enabled="false" \
+  --set controller.enabled="true" \
   --set controller.replicaCount="1" \
   --set broker.replicaCount="1" \
   kafka-repo/kafka
 ```
 
-> `broker.combinedMode.enabled` 混部模式，即进程同时具有 broker + controller 角色，单节点服务器启动一个 Pod 即可。`kafka-repo/kafka` 默认开启混部，`kafka-repo/kafka-ha` 默认关闭混部。
+> `kafka-repo/kafka` 默认关闭 controller 独立部署，`kafka-repo/kafka-ha` 默认开启。
 
 ### 部署高可用集群
 

@@ -8,7 +8,7 @@
 | `KAFKA_BROKER_LISTENER_PORT` | `9092` | broker 端口号，如果配置了 `KAFKA_CFG_LISTENERS` 则此项失效 |
 | `KAFKA_CONTROLLER_LISTENER_PORT` | `19091` | controller 端口号，如果配置了 `KAFKA_CFG_LISTENERS` 则此项失效 |
 | `KAFKA_BROKER_EXTERNAL_HOST` | null | 对外暴露的主机名，可以是域名或IP地址，如果配置了 `KAFKA_CFG_ADVERTISED_LISTENERS` 则此项失效 |
-| `KAFKA_BROKER_EXTERNAL_PORT` | `29092` | 对外暴露的端口号，不能跟内部端口重复，如果配置了 `KAFKA_CFG_ADVERTISED_LISTENERS` 则此项失效 |
+| `KAFKA_BROKER_EXTERNAL_PORT` | null | 对外暴露的端口号，不能跟内部端口重复，如果配置了 `KAFKA_CFG_ADVERTISED_LISTENERS` 则此项失效 |
 | `KAFKA_HEAP_OPTS` | `null` | Kafka Java Heap size. 例如: `-Xmx512m -Xms512m`|
 
 ## Kafka Configurations
@@ -27,5 +27,3 @@ Variable examples:
 | `KAFKA_CFG_ADVERTISED_LISTENERS`               | `advertised.listeners` |
 | `KAFKA_CFG_CONTROLLER_QUORUM_VOTERS`           | `controller.quorum.voters` |
 | `KAFKA_CFG_LOG_RETENTION_HOURS`                | `log.retention.hours` |
-
-> `log.dir` 和 `log.dirs` 已经被锁定，无法使用环境变量进行覆盖。

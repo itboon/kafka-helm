@@ -51,4 +51,6 @@ jobs:
           chmod a+rx $ALIOSS
           $ALIOSS config -e $OSS_EP -i $OSS_KEY_ID -k $OSS_KEY_SECRET
           repo_name="${GITHUB_REPOSITORY#*/}"
+          rm -rf .git
           $ALIOSS cp -rf ./ "oss://${OSS_BUCKET}/${repo_name}/"
+          $ALIOSS cp -rf ./ "oss://${OSS_BUCKET}/kafka-docker/"

@@ -5,10 +5,10 @@ volumes:
 
 services:
   kafka:
-    image: kafkace/kafka:v3.5.2
+    image: kafkace/kafka:v3.9.0
     restart: always
     network_mode: "host"
     volumes:
-      - kafka-data:/opt/kafka/data
+      - kafka-data:/var/lib/kafka/data
     environment:
       KAFKA_HEAP_OPTS: -Xmx1024m -Xms1024m

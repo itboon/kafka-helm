@@ -17,12 +17,12 @@ volumes:
 
 services:
   kafka01:
-    image: kafkace/kafka:v3.6
+    image: kafkace/kafka:v3.9.0
     # restart: always
     ports:
       - "29091:29091"
     volumes:
-      - kafka01-data:/opt/kafka/data
+      - kafka01-data:/var/lib/kafka/data
     environment:
       - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
       - KAFKA_CLUSTER_ID=K7j2htIgTGiXLPDIjMiC9g
@@ -33,12 +33,12 @@ services:
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka01:9091,2@kafka02:9091,3@kafka03:9091
 
   kafka02:
-    image: kafkace/kafka:v3.6
+    image: kafkace/kafka:v3.9.0
     # restart: always
     ports:
       - "29092:29092"
     volumes:
-      - kafka02-data:/opt/kafka/data
+      - kafka02-data:/var/lib/kafka/data
     environment:
       - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
       - KAFKA_CLUSTER_ID=K7j2htIgTGiXLPDIjMiC9g
@@ -49,12 +49,12 @@ services:
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka01:9091,2@kafka02:9091,3@kafka03:9091
 
   kafka03:
-    image: kafkace/kafka:v3.6
+    image: kafkace/kafka:v3.9.0
     # restart: always
     ports:
       - "29093:29093"
     volumes:
-      - kafka03-data:/opt/kafka/data
+      - kafka03-data:/var/lib/kafka/data
     environment:
       - KAFKA_HEAP_OPTS=-Xmx512m -Xms512m
       - KAFKA_CLUSTER_ID=K7j2htIgTGiXLPDIjMiC9g

@@ -5,12 +5,12 @@ volumes:
 
 services:
   kafka:
-    image: kafkace/kafka:v3.6
+    image: kafkace/kafka:v3.9.0
     # restart: always
     ports:
       - "29092:29092"
     volumes:
-      - kafka-data:/opt/kafka/data
+      - kafka-data:/var/lib/kafka/data
     environment:
       - KAFKA_HEAP_OPTS=-Xmx1024m -Xms1024m
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL

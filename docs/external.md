@@ -18,12 +18,12 @@ volumes:
 
 services:
   kafka:
-    image: kafkace/kafka:v3.6
+    image: kafkace/kafka:v3.9.0
     # restart: always
     ports:
       - "29092:29092"
     volumes:
-      - kafka-data:/opt/kafka/data
+      - kafka-data:/var/lib/kafka/data
     environment:
       KAFKA_HEAP_OPTS: "-Xms1024m -Xmx1024m"
       ## 将主机名替换成你自己的外部主机名，可以是域名或IP地址

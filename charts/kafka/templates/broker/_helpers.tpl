@@ -86,15 +86,18 @@ broker.advertisedListeners.external
 {{- $addr := "$(POD_IP)" -}}
 {{- $port := .Values.broker.external.containerPort | int -}}
 {{- with .Values.broker.external -}}
+{{- if .enabled -}}
 {{- if eq .type "NodePort" -}}
   {{- $addr = "$(POD_HOST_IP)" -}}
-  {{- $port = "$(KAFKA_EXTERNAL_NODEPORT)" -}}
+  {{- $fullNodePorts := include "broker.fullNodePorts" $ -}}
+  {{- $port = printf "$(echo '%s' | cut -d',' -f$(($(echo $POD_NAME | sed 's/.*-//')+1)))" $fullNodePorts -}}
 {{- else if eq .type "HostPort" -}}
   {{- $addr = "$(POD_HOST_IP)" -}}
   {{- $port = .hostPort | default .containerPort -}}
 {{- end -}}
 {{- if eq (include "broker.externalDns.enabled" $) "true" -}}
   {{- $addr = printf "$(POD_NAME).%s.%s" (include "broker.externalDns.hostnamePrefix" $) (include "broker.externalDns.domain" $) -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- printf "EXTERNAL://%s:%s" $addr $port -}}
@@ -112,7 +115,11 @@ broker.advertisedListeners.plaintext
 broker.config.advertised.listeners
 */}}
 {{- define "broker.config.advertised.listeners" -}}
+{{- if .Values.broker.external.enabled -}}
 {{- printf "%s,%s,%s" (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.external" .) (include "broker.advertisedListeners.plaintext" .) -}}
+{{- else -}}
+{{- printf "%s,%s" (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.plaintext" .) -}}
+{{- end -}}
 {{- end -}}
 
 {{/*

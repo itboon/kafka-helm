@@ -75,13 +75,13 @@ kubectl apply -f examples/kafka-client-sasl.yaml
 kubectl exec -it kafka-client-sasl -- bash
 
 # 创建主题
-bin/kafka-topics.sh --bootstrap-server kafka-sasl:9092 \
+bin/kafka-topics.sh --bootstrap-server kafka-sasl-broker:9092 \
   --command-config /etc/kafka/client/client.properties \
   --create --topic test-topic --partitions 2 --replication-factor 1
 
 # 发送消息
 echo "Hello SASL SCRAM" | bin/kafka-console-producer.sh \
-  --bootstrap-server kafka-sasl:9092 \
+  --bootstrap-server kafka-sasl-broker:9092 \
   --producer.config /etc/kafka/client/producer.properties \
   --topic test-topic
 ```
@@ -91,7 +91,7 @@ echo "Hello SASL SCRAM" | bin/kafka-console-producer.sh \
 ```bash
 # 消费消息
 bin/kafka-console-consumer.sh \
-  --bootstrap-server kafka-sasl:9092 \
+  --bootstrap-server kafka-sasl-broker:9092 \
   --consumer.config /etc/kafka/client/consumer.properties \
   --topic test-topic --from-beginning
 ```

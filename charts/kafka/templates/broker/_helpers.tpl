@@ -137,7 +137,7 @@ broker env
   value: {{ include "broker.config.advertised.listeners" . }}
 - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
   {{- if .Values.broker.auth.enabled }}
-  value: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+  value: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:PLAINTEXT
   {{- else }}
   value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT
   {{- end }}

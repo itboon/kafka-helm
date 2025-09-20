@@ -32,13 +32,13 @@ metadata:
   name: kafka-client-sasl-config
 data:
   client.properties: |
-    bootstrap.servers=kafka-sasl:9092
+    bootstrap.servers=kafka-sasl-broker:9092
     security.protocol=SASL_PLAINTEXT
     sasl.mechanism=SCRAM-SHA-256
     sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka" password="Kafka@2025";
   
   producer.properties: |
-    bootstrap.servers=kafka-sasl:9092
+    bootstrap.servers=kafka-sasl-broker:9092
     security.protocol=SASL_PLAINTEXT
     sasl.mechanism=SCRAM-SHA-256
     sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka" password="Kafka@2025";
@@ -46,7 +46,7 @@ data:
     value.serializer=org.apache.kafka.common.serialization.StringSerializer
   
   consumer.properties: |
-    bootstrap.servers=kafka-sasl:9092
+    bootstrap.servers=kafka-sasl-broker:9092
     security.protocol=SASL_PLAINTEXT
     sasl.mechanism=SCRAM-SHA-256
     sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka" password="Kafka@2025";

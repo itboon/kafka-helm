@@ -99,6 +99,10 @@ spec:
           name: entrypoint-sh
           subPath: entrypoint.sh
         {{- if $.Values.broker.auth.enabled }}
+        - mountPath: /opt/kafka/config
+          name: client-config
+        {{- end }}
+        {{- if $.Values.broker.auth.enabled }}
         - mountPath: "/etc/kafka/jaas"
           name: jaas-config
         {{- end }}
@@ -126,6 +130,10 @@ spec:
       - name: jaas-config
         configMap:
           name: {{ include "kafka.broker.fullname" $ }}-jaas
+          defaultMode: 0644
+      - name: client-config
+        configMap:
+          name: kafka-client-sasl-config
           defaultMode: 0644
       {{- end }}
       {{- if eq (include "broker.external.autoDiscovery.enabled" $) "true" }}

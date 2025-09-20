@@ -30,7 +30,7 @@ spec:
           - -c
           - |
             echo "Waiting for Kafka to be ready..."
-            while ! bin/kafka-broker-api-versions.sh --bootstrap-server={{ include "kafka.broker.fullname" $ }}.{{ include "kafka.namespace" $ }}.svc.{{ .Values.clusterDomain }}:{{ .Values.broker.external.containerPort }} >/dev/null 2>&1; do
+            while ! bin/kafka-broker-api-versions.sh --bootstrap-server={{ include "kafka.broker.fullname" $ }}.{{ include "kafka.namespace" $ }}.svc.{{ .Values.clusterDomain }}:9094 >/dev/null 2>&1; do
               echo "Kafka not ready yet, waiting..."
               sleep 10
             done
@@ -39,7 +39,7 @@ spec:
             
             {{- range .Values.broker.auth.users }}
             # Create SCRAM user: {{ .username }}
-            bin/kafka-configs.sh --bootstrap-server={{ include "kafka.broker.fullname" $ }}.{{ include "kafka.namespace" $ }}.svc.{{ $.Values.clusterDomain }}:{{ $.Values.broker.external.containerPort }} \
+            bin/kafka-configs.sh --bootstrap-server={{ include "kafka.broker.fullname" $ }}.{{ include "kafka.namespace" $ }}.svc.{{ $.Values.clusterDomain }}:9094 \
               --alter --add-config 'SCRAM-SHA-256=[password={{ .password }}]' \
               --entity-type users --entity-name {{ .username }} || true
             {{- end }}

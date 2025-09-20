@@ -99,8 +99,9 @@ spec:
           name: entrypoint-sh
           subPath: entrypoint.sh
         {{- if $.Values.broker.auth.enabled }}
-        - mountPath: /opt/kafka/config
+        - mountPath: /opt/kafka/config/client.properties
           name: client-config
+          subPath: client.properties
         {{- end }}
         {{- if $.Values.broker.auth.enabled }}
         - mountPath: "/etc/kafka/jaas"

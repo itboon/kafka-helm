@@ -88,6 +88,7 @@ broker.advertisedListeners.external
 {{- with .Values.broker.external -}}
 {{- if eq .type "NodePort" -}}
   {{- $addr = "$(POD_HOST_IP)" -}}
+  {{- $port = "$(KAFKA_EXTERNAL_NODEPORT)" -}}
 {{- else if eq .type "HostPort" -}}
   {{- $addr = "$(POD_HOST_IP)" -}}
   {{- $port = .hostPort | default .containerPort -}}
@@ -96,7 +97,7 @@ broker.advertisedListeners.external
   {{- $addr = printf "$(POD_NAME).%s.%s" (include "broker.externalDns.hostnamePrefix" $) (include "broker.externalDns.domain" $) -}}
 {{- end -}}
 {{- end -}}
-{{- printf "EXTERNAL://%s:%d" $addr ($port | int) -}}
+{{- printf "EXTERNAL://%s:%s" $addr $port -}}
 {{- end -}}
 
 {{/*
@@ -130,6 +131,10 @@ broker env
   valueFrom:
     fieldRef:
       fieldPath: metadata.name
+{{- if and .Values.broker.external.enabled (eq .Values.broker.external.type "NodePort") }}
+- name: KAFKA_EXTERNAL_NODEPORT
+  value: "{{ include "broker.external.nodePort" . }}"
+{{- end }}
 - name: KAFKA_HEAP_OPTS
   value: {{ .Values.broker.heapOpts | quote }}
 - name: KAFKA_CFG_PROCESS_ROLES
@@ -226,6 +231,14 @@ broker.externalEnv
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+broker.external.nodePort
+*/}}
+{{- define "broker.external.nodePort" -}}
+{{- $fullNodePorts := include "broker.fullNodePorts" . -}}
+{{- printf "$(echo '%s' | cut -d',' -f$(($(echo $POD_NAME | sed 's/.*-//')+1)))" $fullNodePorts -}}
+{{- end -}}
 
 {{/*
 broker.fullNodePorts

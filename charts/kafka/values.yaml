@@ -72,13 +72,6 @@ broker:
     num.partitions: "2"
     # default.replication.factor: "1"
     # min.insync.replicas: "1"
-    # SASL相关配置
-    sasl.enabled.mechanisms: "SCRAM-SHA-256"
-    sasl.mechanism.inter.broker.protocol: "SCRAM-SHA-256"
-    security.inter.broker.protocol: "SASL_PLAINTEXT"
-    listener.security.protocol.map: "CONTROLLER:PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT"
-    listeners: "CONTROLLER://:19091,PLAINTEXT://:9092"
-    advertised.listeners: "PLAINTEXT://localhost:9092"
 
   ## broker.persistence
   persistence:

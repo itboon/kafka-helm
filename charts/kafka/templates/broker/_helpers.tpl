@@ -176,8 +176,6 @@ broker env
   value: {{ .Values.broker.auth.mechanism | quote }}
 - name: KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL
   value: {{ .Values.broker.auth.mechanism | quote }}
-- name: KAFKA_CFG_SECURITY_INTER_BROKER_PROTOCOL
-  value: "SASL_PLAINTEXT"
 {{- end }}
 {{- if .Values.broker.external.enabled -}}
 {{- include "broker.externalEnv" $ | nindent 0 }}

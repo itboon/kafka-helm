@@ -1,0 +1,51 @@
+{{- if .Values.broker.auth.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kafka.broker.fullname" . }}-init-scram
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: broker-init
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "kafka.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: broker-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: init-scram-users
+        image: {{ include "kafka.kafkaImage" $ | quote }}
+        {{- with $.Values.image.pullPolicy }}
+        imagePullPolicy: {{ . | quote }}
+        {{- end }}
+        command:
+          - /bin/bash
+          - -c
+          - |
+            echo "Waiting for Kafka to be ready..."
+            while ! bin/kafka-broker-api-versions.sh --bootstrap-server={{ include "kafka.broker.fullname" $ }}.{{ include "kafka.namespace" $ }}.svc.{{ .Values.clusterDomain }}:{{ .Values.broker.containerPort }} >/dev/null 2>&1; do
+              echo "Kafka not ready yet, waiting..."
+              sleep 10
+            done
+            
+            echo "Kafka is ready, creating SCRAM users..."
+            
+            {{- range .Values.broker.auth.users }}
+            # Create SCRAM user: {{ .username }}
+            bin/kafka-configs.sh --bootstrap-server={{ include "kafka.broker.fullname" $ }}.{{ include "kafka.namespace" $ }}.svc.{{ $.Values.clusterDomain }}:{{ $.Values.broker.containerPort }} \
+              --alter --add-config 'SCRAM-SHA-256=[password={{ .password }}]' \
+              --entity-type users --entity-name {{ .username }} || true
+            {{- end }}
+            
+            echo "SCRAM users created successfully"
+        env:
+          - name: KAFKA_HEAP_OPTS
+            value: "-Xms256m -Xmx256m"
+{{- end }}

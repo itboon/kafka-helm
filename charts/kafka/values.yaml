@@ -57,12 +57,28 @@ broker:
   commonEnvs: []
   extraEnvs: []
 
+  ## SASL SCRAM 认证配置
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    # SASL用户凭据将通过Secret管理
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
+
   ## broker.config - server.properties 配置
   ## 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
   config:
     num.partitions: "2"
     # default.replication.factor: "1"
     # min.insync.replicas: "1"
+    # SASL相关配置
+    sasl.enabled.mechanisms: "SCRAM-SHA-256"
+    sasl.mechanism.inter.broker.protocol: "SCRAM-SHA-256"
+    security.inter.broker.protocol: "SASL_PLAINTEXT"
+    listener.security.protocol.map: "CONTROLLER:PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT"
+    listeners: "CONTROLLER://:19091,PLAINTEXT://:9092"
+    advertised.listeners: "PLAINTEXT://localhost:9092"
 
   ## broker.persistence
   persistence:

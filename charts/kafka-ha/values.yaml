@@ -10,7 +10,7 @@ clusterId: "YLlmZWU5YTItYThjNi00Zg"
 image:
   repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.7.1-63ba8d2
+  tag: v4.0.0
 rbac:
   create: true
 serviceAccount:

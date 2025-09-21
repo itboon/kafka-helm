@@ -18,7 +18,7 @@ controller.containerEnv
 - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
   value: {{ include "kafka.controller.quorum.voters" . }}
 - name: KAFKA_CFG_LOG_DIR
-  value: {{ .Values.controller.persistence.mountPath | default "/opt/kafka/data" | quote }}
+  value: {{ if .Values.controller.persistence }}{{ .Values.controller.persistence.mountPath | default "/opt/kafka/data" | quote }}{{ else }}"/opt/kafka/data"{{ end }}
 - name: KAFKA_CLUSTER_ID
   valueFrom:
     secretKeyRef:

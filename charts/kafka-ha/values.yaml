@@ -140,6 +140,10 @@ controller:
   heapOpts: "-Xms512m -Xmx512m"
   commonEnvs: []
   extraEnvs: []
+  ## controller.labels
+  labels: {}
+  ## controller.annotations  
+  annotations: {}
   persistence:
     enabled: true
     size: 20Gi
@@ -174,6 +178,8 @@ controller:
   tolerations: []
   ## controller.podAnnotations
   podAnnotations: {}
+  ## controller.podLabels
+  podLabels: {}
   ## controller.antiAffinity
   antiAffinity: soft
   antiAffinityTopologyKey: kubernetes.io/hostname

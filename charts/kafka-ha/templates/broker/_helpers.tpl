@@ -136,9 +136,17 @@ broker env
 - name: KAFKA_CFG_ADVERTISED_LISTENERS
   value: {{ include "broker.config.advertised.listeners" . }}
 - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+  {{- if .Values.broker.auth.enabled }}
+  value: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+  {{- else }}
   value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT
+  {{- end }}
 - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+  {{- if .Values.broker.auth.enabled }}
   value: BROKER
+  {{- else }}
+  value: BROKER
+  {{- end }}
 - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
   value: CONTROLLER
 - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
@@ -164,6 +172,14 @@ broker env
 {{- if .Values.controller.enabled }}
 - name: KAFKA_NODE_ID_OFFSET
   value: "1000"
+{{- end }}
+{{- if .Values.broker.auth.enabled }}
+- name: KAFKA_OPTS
+  value: "-Djava.security.auth.login.config=/etc/kafka/jaas/kafka_server_jaas.conf"
+- name: KAFKA_CFG_SASL_ENABLED_MECHANISMS
+  value: {{ .Values.broker.auth.mechanism | quote }}
+- name: KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL
+  value: {{ .Values.broker.auth.mechanism | quote }}
 {{- end }}
 {{- if .Values.broker.external.enabled -}}
 {{- include "broker.externalEnv" $ | nindent 0 }}

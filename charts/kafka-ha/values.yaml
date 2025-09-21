@@ -48,6 +48,16 @@ broker:
   heapOpts: "-Xms1024m -Xmx1024m"
   commonEnvs: []
   extraEnvs: []
+
+  ## SASL SCRAM 认证配置
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    # SASL用户凭据将通过Secret管理
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
+
   ## broker.config - server.properties 配置
   ## 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
   config:

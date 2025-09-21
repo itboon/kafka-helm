@@ -44,6 +44,8 @@ global:
 broker:
   replicaCount: 3
   containerPort: 9092
+  # Internal communication port for broker-to-broker communication (plaintext)
+  internalPort: 9094
   terminationGracePeriodSeconds: 60
   heapOpts: "-Xms1024m -Xmx1024m"
   commonEnvs: []

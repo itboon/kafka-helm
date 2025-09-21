@@ -5,6 +5,9 @@ broker.containerPorts
 - containerPort: {{ .Values.broker.containerPort }}
   name: broker
   protocol: TCP
+- containerPort: {{ .Values.broker.internalPort | default 9094 }}
+  name: internal
+  protocol: TCP
 {{- with .Values.broker.external }}
 {{- if .enabled }}
 - containerPort: {{ .containerPort }}
@@ -72,8 +75,8 @@ broker.advertisedListeners.internal
 */}}
 {{- define "broker.advertisedListeners.internal" -}}
 {{- $serviceAddr := (include "broker.headless.serviceAddr" .) -}}
-{{- $port := .Values.broker.containerPort | int -}}
-{{- printf "BROKER://$(POD_NAME).%s:%d" $serviceAddr $port -}}
+{{- $port := .Values.broker.internalPort | default 9094 | int -}}
+{{- printf "INTERNAL://$(POD_NAME).%s:%d" $serviceAddr $port -}}
 {{- end -}}
 
 {{/*
@@ -129,24 +132,20 @@ broker env
   {{- end }}
 - name: KAFKA_CFG_LISTENERS
   {{- if not .Values.controller.enabled }}
-  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }},CONTROLLER://0.0.0.0:{{ .Values.controller.containerPort }}"
+  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},INTERNAL://0.0.0.0:{{ .Values.broker.internalPort | default 9094 }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }},CONTROLLER://0.0.0.0:{{ .Values.controller.containerPort }}"
   {{- else }}
-  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }}"
+  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},INTERNAL://0.0.0.0:{{ .Values.broker.internalPort | default 9094 }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }}"
   {{- end }}
 - name: KAFKA_CFG_ADVERTISED_LISTENERS
   value: {{ include "broker.config.advertised.listeners" . }}
 - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
   {{- if .Values.broker.auth.enabled }}
-  value: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+  value: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
   {{- else }}
-  value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT
+  value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
   {{- end }}
 - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
-  {{- if .Values.broker.auth.enabled }}
-  value: BROKER
-  {{- else }}
-  value: BROKER
-  {{- end }}
+  value: INTERNAL
 - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
   value: CONTROLLER
 - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS

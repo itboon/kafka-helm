@@ -80,6 +80,15 @@ broker.advertisedListeners.internal
 {{- end -}}
 
 {{/*
+broker.advertisedListeners.broker
+*/}}
+{{- define "broker.advertisedListeners.broker" -}}
+{{- $serviceAddr := (include "broker.headless.serviceAddr" .) -}}
+{{- $port := .Values.broker.containerPort | int -}}
+{{- printf "BROKER://$(POD_NAME).%s:%d" $serviceAddr $port -}}
+{{- end -}}
+
+{{/*
 broker.advertisedListeners.external
 */}}
 {{- define "broker.advertisedListeners.external" -}}
@@ -103,7 +112,11 @@ broker.advertisedListeners.external
 broker.config.advertised.listeners
 */}}
 {{- define "broker.config.advertised.listeners" -}}
-{{- printf "%s,%s" (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.external" .) -}}
+{{- $listeners := list (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.broker" .) -}}
+{{- if .Values.broker.external.enabled -}}
+{{- $listeners = append $listeners (include "broker.advertisedListeners.external" .) -}}
+{{- end -}}
+{{- join "," $listeners -}}
 {{- end -}}
 
 {{/*

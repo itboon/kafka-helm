@@ -61,7 +61,7 @@ spec:
         env:
         {{- include "controller.containerEnv" $ | nindent 8 }}
         ports:
-        - containerPort: {{ if $.Values.controller }}{{ $.Values.controller.containerPort }}{{ else }}9093{{ end }}
+        - containerPort: {{ $.Values.controller.containerPort }}
           name: controller
           protocol: TCP
         {{- with .livenessProbe }}
@@ -81,7 +81,7 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         volumeMounts:
-        - mountPath: {{ if and .Values.controller (hasKey .Values.controller "persistence") }}{{ .Values.controller.persistence.mountPath | default "/opt/kafka/data" }}{{ else }}"/opt/kafka/data"{{ end }}
+        - mountPath: /opt/kafka/data
           name: data
           subPath: data
         - mountPath: /opt/kafka/logs

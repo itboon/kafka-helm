@@ -147,7 +147,6 @@ controller:
   persistence:
     enabled: true
     size: 20Gi
-    mountPath: /opt/kafka/data
     # storageClass: "gp2"
   ## controller.resources
   resources:

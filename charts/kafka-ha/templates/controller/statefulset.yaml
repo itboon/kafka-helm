@@ -81,7 +81,7 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         volumeMounts:
-        - mountPath: /opt/kafka/data
+        - mountPath: {{ .Values.controller.persistence.mountPath }}
           name: data
           subPath: data
         - mountPath: /opt/kafka/logs

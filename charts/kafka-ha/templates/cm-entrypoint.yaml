@@ -19,6 +19,7 @@ data:
     export KAFKA_BASE_CONF_FILE="${KAFKA_BASE_CONF_FILE:=/etc/kafka/base-cm/server.properties}"
     
     export KAFKA_CFG_LOG_DIR="${KAFKA_CFG_LOG_DIR:=/var/lib/kafka/data}"
+    export KAFKA_CFG_LOG_DIRS="${KAFKA_CFG_LOG_DIRS:=$KAFKA_CFG_LOG_DIR}"
     
     check_runtime() {
       java -version

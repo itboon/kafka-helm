@@ -243,7 +243,7 @@ broker.internal.bootstrapServers
 {{- define "broker.internal.bootstrapServers" -}}
 {{- $brokerFullName := include "kafka.broker.fullname" . -}}
 {{- $domainSuffix := (include "broker.headless.serviceAddr" .) -}}
-{{- $brokerPort := .Values.broker.containerPort | int -}}
+{{- $brokerPort := .Values.broker.internalPort | default 9094 | int -}}
   {{- $servers := list -}}
   {{- $brokerReplicaCount := int .Values.broker.replicaCount -}}
   {{- range $i := until $brokerReplicaCount -}}

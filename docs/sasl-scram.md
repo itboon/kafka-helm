@@ -29,7 +29,51 @@ broker:
 - `sasl.enabled.mechanisms=SCRAM-SHA-256`
 - `sasl.mechanism.inter.broker.protocol=SCRAM-SHA-256`
 - `security.inter.broker.protocol=SASL_PLAINTEXT`
-- `listener.security.protocol.map=CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT`
+- `listener.security.protocol.map=CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SASL_PLAINTEXT`
+
+### 3. 监听器端口配置
+
+Kafka 集群配置了以下监听器：
+
+| 监听器名称 | 端口 | 协议 | 用途 | SASL认证 |
+|-----------|------|------|------|----------|
+| CONTROLLER | 9093 | PLAINTEXT | Controller间通信 | 否 |
+| BROKER | 9092 | SASL_PLAINTEXT | 客户端连接 | 是 |
+| INTERNAL | 9094 | PLAINTEXT | Broker间通信 | 否 |
+| EXTERNAL | 9095 | SASL_PLAINTEXT | 外部客户端连接 | 是 |
+
+### 4. Advertised Listeners 配置
+
+系统会自动配置 `advertised.listeners`，包含：
+
+- `INTERNAL://kafka-ha-broker-0.kafka-ha-headless.default.svc.cluster.local:9094`
+- `BROKER://kafka-ha-broker-0.kafka-ha-headless.default.svc.cluster.local:9092`
+- `EXTERNAL://...` (仅在 `broker.external.enabled=true` 时)
+
+**重要说明**：客户端应使用 **BROKER** 监听器（端口9092）进行连接，该监听器启用了SASL认证。
+
+### 5. External 监听器配置
+
+如果需要启用外部访问，可以配置：
+
+```yaml
+broker:
+  external:
+    enabled: true  # 启用外部监听器
+    type: NodePort  # 或 LoadBalancer
+    containerPort: 9095
+```
+
+启用后，`advertised.listeners` 将包含 EXTERNAL 监听器，允许集群外部的客户端连接。
+
+### 6. 监听器配置最佳实践
+
+1. **内部通信**：INTERNAL 监听器用于 broker 间通信，无需认证
+2. **客户端连接**：BROKER 监听器用于客户端连接，启用 SASL 认证
+3. **外部访问**：EXTERNAL 监听器用于集群外部访问，启用 SASL 认证
+4. **Controller 通信**：CONTROLLER 监听器用于 controller 间通信，无需认证
+
+**注意**：确保客户端使用正确的端口和协议进行连接，避免 "no matching listener" 错误。
 
 ## 部署步骤
 
@@ -74,14 +118,14 @@ kubectl apply -f examples/kafka-client-sasl.yaml
 # 进入客户端 Pod
 kubectl exec -it kafka-client-sasl -- bash
 
-# 创建主题
-bin/kafka-topics.sh --bootstrap-server kafka-sasl-broker:9092 \
+# 创建主题 (使用BROKER监听器端口9092)
+bin/kafka-topics.sh --bootstrap-server kafka-ha-broker:9092 \
   --command-config /etc/kafka/client/client.properties \
   --create --topic test-topic --partitions 2 --replication-factor 1
 
 # 发送消息
 echo "Hello SASL SCRAM" | bin/kafka-console-producer.sh \
-  --bootstrap-server kafka-sasl-broker:9092 \
+  --bootstrap-server kafka-ha-broker:9092 \
   --producer.config /etc/kafka/client/producer.properties \
   --topic test-topic
 ```
@@ -91,7 +135,7 @@ echo "Hello SASL SCRAM" | bin/kafka-console-producer.sh \
 ```bash
 # 消费消息
 bin/kafka-console-consumer.sh \
-  --bootstrap-server kafka-sasl-broker:9092 \
+  --bootstrap-server kafka-ha-broker:9092 \
   --consumer.config /etc/kafka/client/consumer.properties \
   --topic test-topic --from-beginning
 ```
@@ -101,7 +145,8 @@ bin/kafka-console-consumer.sh \
 ### Java 客户端配置
 
 ```properties
-bootstrap.servers=kafka-sasl:9092
+# 使用BROKER监听器端口9092进行SASL认证连接
+bootstrap.servers=kafka-ha-broker:9092
 security.protocol=SASL_PLAINTEXT
 sasl.mechanism=SCRAM-SHA-256
 sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka" password="Kafka@2025";
@@ -112,8 +157,9 @@ sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule require
 ```python
 from kafka import KafkaProducer, KafkaConsumer
 
+# 使用BROKER监听器端口9092进行SASL认证连接
 producer = KafkaProducer(
-    bootstrap_servers=['kafka-sasl:9092'],
+    bootstrap_servers=['kafka-ha-broker:9092'],
     security_protocol='SASL_PLAINTEXT',
     sasl_mechanism='SCRAM-SHA-256',
     sasl_plain_username='kafka',
@@ -122,7 +168,7 @@ producer = KafkaProducer(
 
 consumer = KafkaConsumer(
     'test-topic',
-    bootstrap_servers=['kafka-sasl:9092'],
+    bootstrap_servers=['kafka-ha-broker:9092'],
     security_protocol='SASL_PLAINTEXT',
     sasl_mechanism='SCRAM-SHA-256',
     sasl_plain_username='kafka',
@@ -155,14 +201,54 @@ consumer = KafkaConsumer(
 - 网络连接是否正常
 - 端口配置是否正确
 
-### 3. 查看详细日志
+### 3. "No matching listener" 错误
+
+如果遇到 `partitions have leader brokers without a matching listener` 错误：
+
+**问题原因**：客户端无法找到匹配的监听器，通常是因为：
+- 使用了错误的端口号
+- `advertised.listeners` 配置不完整
+- 监听器协议不匹配
+
+**解决方案**：
+1. **确认使用正确的端口**：
+   - SASL 客户端应使用端口 **9092** (BROKER 监听器)
+   - 不要使用端口 9094 (INTERNAL 监听器，仅用于 broker 间通信)
+
+2. **检查 advertised.listeners 配置**：
+   ```bash
+   # 查看当前配置
+   kubectl exec kafka-ha-broker-0 -- env | grep KAFKA_CFG_ADVERTISED_LISTENERS
+   ```
+
+3. **验证监听器配置**：
+   ```bash
+   # 应该包含 BROKER 监听器
+   # INTERNAL://kafka-ha-broker-0.kafka-ha-headless.default.svc.cluster.local:9094,
+   # BROKER://kafka-ha-broker-0.kafka-ha-headless.default.svc.cluster.local:9092
+   ```
+
+### 4. 客户端连接配置检查
+
+确保客户端配置正确：
+```properties
+# 正确的配置
+bootstrap.servers=kafka-ha-broker:9092  # 使用 BROKER 监听器
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=SCRAM-SHA-256
+```
+
+### 5. 查看详细日志
 
 ```bash
 # 查看 Kafka broker 日志
 kubectl logs -l app.kubernetes.io/component=broker -f
 
 # 查看 SCRAM 初始化 Job 日志
-kubectl logs job/kafka-sasl-broker-init-scram
+kubectl logs job/kafka-ha-broker-init-scram
+
+# 检查监听器配置
+kubectl exec kafka-ha-broker-0 -- cat /opt/bitnami/kafka/config/server.properties | grep listeners
 ```
 
 ## 升级和维护
@@ -185,6 +271,46 @@ helm upgrade kafka-sasl ./charts/kafka -f examples/values-sasl-scram.yml
 1. 更新 values.yaml 中的密码
 2. 执行 Helm 升级
 3. SCRAM 初始化 Job 会自动更新用户凭据
+
+## 快速参考
+
+### 端口和监听器速查表
+
+| 端口 | 监听器 | 协议 | 用途 | SASL认证 | 客户端使用 |
+|------|--------|------|------|----------|------------|
+| 9092 | BROKER | SASL_PLAINTEXT | 客户端连接 | ✅ | **推荐** |
+| 9093 | CONTROLLER | PLAINTEXT | Controller通信 | ❌ | 禁止 |
+| 9094 | INTERNAL | PLAINTEXT | Broker间通信 | ❌ | 禁止 |
+| 9095 | EXTERNAL | SASL_PLAINTEXT | 外部客户端 | ✅ | 可选 |
+
+### 常用命令
+
+```bash
+# 部署 SASL Kafka
+helm install kafka-ha charts/kafka-ha -f examples/values-sasl-scram.yml
+
+# 检查 Pod 状态
+kubectl get pods -l app.kubernetes.io/name=kafka-ha
+
+# 查看监听器配置
+kubectl exec kafka-ha-broker-0 -- env | grep KAFKA_CFG_ADVERTISED_LISTENERS
+
+# 测试连接
+kubectl exec -it kafka-client -- kafka-topics.sh \
+  --bootstrap-server kafka-ha-broker:9092 \
+  --command-config /etc/kafka/client.properties \
+  --list
+```
+
+### 客户端配置模板
+
+```properties
+# 基本 SASL 配置
+bootstrap.servers=kafka-ha-broker:9092
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=SCRAM-SHA-256
+sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka" password="Kafka@2025";
+```
 
 ## 参考资料
 

@@ -259,6 +259,13 @@ ui:
     requests:
       cpu: 50m
       memory: 256Mi
+
+  ## ui.extraEnvs - 额外的环境变量
+  extraEnvs: []
+    # - name: KAFKA_CLUSTERS_0_READONLY
+    #   value: "false"
+    # - name: LOGGING_LEVEL_COM_PROVECTUS
+    #   value: "INFO"
   
   ## ui.readinessProbe
   readinessProbe:
@@ -276,6 +283,8 @@ ui:
   service:
     annotations: {}
     type: ClusterIP
+    port: 8080
+    # nodePort: 30080  # 仅在type为NodePort时使用
 
   ## ui.ingress
   ingress:

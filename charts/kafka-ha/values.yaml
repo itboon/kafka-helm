@@ -222,9 +222,9 @@ exporter:
   
   # 额外的命令行参数（用于 SASL 认证等）
   extraArgs: 
-    - "--sasl.enabled=true"
-    - "--sasl.mechanism=SCRAM-SHA-256"
-    - "--sasl.username=exporter"
+    - "--sasl.enabled"
+    - "--sasl.mechanism=scram-sha256"
+    - "--sasl.username=kafka"
     - "--sasl.password=Kafka@2025"
   # 如果不需要SASL认证，可以设置为空数组:
   # extraArgs: []

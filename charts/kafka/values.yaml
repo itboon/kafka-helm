@@ -237,6 +237,19 @@ exporter:
   ## exporter.service
   service:
     annotations: {}
+  
+  # 额外的命令行参数（用于 SASL 认证等）
+  extraArgs: 
+    - "--sasl.enabled=true"
+    - "--sasl.mechanism=SCRAM-SHA-256"
+    - "--sasl.username=exporter"
+    - "--sasl.password=Kafka@2025"
+  # SASL 认证示例：
+  # extraArgs:
+  #   - "--sasl.enabled=true"
+  #   - "--sasl.mechanism=SCRAM-SHA-256"
+  #   - "--sasl.username=exporter"
+  #   - "--sasl.password=your-password"
 
 ui:
   enabled: false
@@ -268,11 +281,11 @@ ui:
     #   value: "INFO"
     
   # UI认证配置示例 (启用基本用户名密码认证)
-   - name: AUTH_TYPE
+    - name: AUTH_TYPE
       value: "LOGIN_FORM"
-   - name: SPRING_SECURITY_USER_NAME
+    - name: SPRING_SECURITY_USER_NAME
        value: "admin"
-   - name: SPRING_SECURITY_USER_PASSWORD
+    - name: SPRING_SECURITY_USER_PASSWORD
        value: "admin"
   
   ## ui.readinessProbe

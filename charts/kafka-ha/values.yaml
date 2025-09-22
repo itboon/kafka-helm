@@ -245,6 +245,14 @@ ui:
   # extraEnvs:
   #   - name: KAFKA_CLUSTERS_0_READONLY
   #     value: "false"
+  
+  # UI认证配置示例 (启用基本用户名密码认证)
+  #   - name: AUTH_TYPE
+  #     value: "LOGIN_FORM"
+  #   - name: SPRING_SECURITY_USER_NAME
+  #     value: "admin"
+  #   - name: SPRING_SECURITY_USER_PASSWORD
+  #     value: "admin123"
   ## ui.readinessProbe
   readinessProbe:
     httpGet:

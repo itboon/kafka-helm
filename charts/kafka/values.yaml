@@ -261,11 +261,19 @@ ui:
       memory: 256Mi
 
   ## ui.extraEnvs - 额外的环境变量
-  extraEnvs: []
+  extraEnvs: 
     # - name: KAFKA_CLUSTERS_0_READONLY
     #   value: "false"
     # - name: LOGGING_LEVEL_COM_PROVECTUS
     #   value: "INFO"
+    
+  # UI认证配置示例 (启用基本用户名密码认证)
+   - name: AUTH_TYPE
+      value: "LOGIN_FORM"
+   - name: SPRING_SECURITY_USER_NAME
+       value: "admin"
+   - name: SPRING_SECURITY_USER_PASSWORD
+       value: "admin"
   
   ## ui.readinessProbe
   readinessProbe:

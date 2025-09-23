@@ -215,7 +215,7 @@ exporter:
   image:
     repository: danielqsj/kafka-exporter
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v1.9.0"
   podAnnotations:
     prometheus.io/path: "/metrics"
     prometheus.io/port: "9308"

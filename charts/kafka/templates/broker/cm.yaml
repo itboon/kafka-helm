@@ -27,14 +27,14 @@ data:
     fix_external_advertised_port() {
       if [ -n "$1" ]; then
         local ext_port="$1"
-        export KAFKA_CFG_ADVERTISED_LISTENERS=$(echo "$KAFKA_CFG_ADVERTISED_LISTENERS" | sed -E 's%(EXTERNAL://.+?):[0-9]+%\1:'${ext_port}'%')
+        export KAFKA_CFG_ADVERTISED_LISTENERS=$(echo "$KAFKA_CFG_ADVERTISED_LISTENERS" | sed -E 's%(EXTERNAL://[^:]+):[0-9]+%\1:'${ext_port}'%')
         echo "KAFKA_CFG_ADVERTISED_LISTENERS: $KAFKA_CFG_ADVERTISED_LISTENERS"
       fi
     }
     fix_external_advertised_host() {
       if [ -n "$1" ]; then
         local ext_host="$1"
-        export KAFKA_CFG_ADVERTISED_LISTENERS=$(echo "$KAFKA_CFG_ADVERTISED_LISTENERS" | sed -E 's%EXTERNAL://.+?:([0-9]+)%EXTERNAL://'${ext_host}':\1%')
+        export KAFKA_CFG_ADVERTISED_LISTENERS=$(echo "$KAFKA_CFG_ADVERTISED_LISTENERS" | sed -E 's%EXTERNAL://[^:]+:([0-9]+)%EXTERNAL://'${ext_host}':\1%')
         echo "KAFKA_CFG_ADVERTISED_LISTENERS: $KAFKA_CFG_ADVERTISED_LISTENERS"
       fi
     }

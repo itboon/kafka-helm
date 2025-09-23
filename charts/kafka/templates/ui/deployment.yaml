@@ -54,6 +54,17 @@ spec:
           - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
             {{- $port := $.Values.broker.containerPort | int }}
             value: {{ printf "%s:%d" (include "broker.headless.serviceAddr" $) $port }}
+          {{- if $.Values.broker.auth.enabled }}
+          - name: KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL
+            value: "SASL_PLAINTEXT"
+          - name: KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM
+            value: {{ $.Values.broker.auth.mechanism | quote }}
+          - name: KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG
+            value: {{ printf "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"%s\" password=\"%s\";" (index $.Values.broker.auth.users 0).username (index $.Values.broker.auth.users 0).password | quote }}
+          {{- end }}
+          {{- with .extraEnvs }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
         ports:
           - name: http
             containerPort: 8080

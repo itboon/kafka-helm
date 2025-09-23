@@ -1,0 +1,13 @@
+{{- if .Values.broker.auth.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-client-sasl-config
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+data:
+  client.properties: |
+    security.protocol=SASL_PLAINTEXT
+    sasl.mechanism=SCRAM-SHA-256
+    sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{{ (index .Values.broker.auth.users 0).username }}" password="{{ (index .Values.broker.auth.users 0).password }}";
+{{- end }}

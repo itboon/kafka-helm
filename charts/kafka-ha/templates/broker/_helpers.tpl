@@ -5,6 +5,9 @@ broker.containerPorts
 - containerPort: {{ .Values.broker.containerPort }}
   name: broker
   protocol: TCP
+- containerPort: {{ .Values.broker.internalPort | default 9094 }}
+  name: internal
+  protocol: TCP
 {{- with .Values.broker.external }}
 {{- if .enabled }}
 - containerPort: {{ .containerPort }}
@@ -72,6 +75,15 @@ broker.advertisedListeners.internal
 */}}
 {{- define "broker.advertisedListeners.internal" -}}
 {{- $serviceAddr := (include "broker.headless.serviceAddr" .) -}}
+{{- $port := .Values.broker.internalPort | default 9094 | int -}}
+{{- printf "INTERNAL://$(POD_NAME).%s:%d" $serviceAddr $port -}}
+{{- end -}}
+
+{{/*
+broker.advertisedListeners.broker
+*/}}
+{{- define "broker.advertisedListeners.broker" -}}
+{{- $serviceAddr := (include "broker.headless.serviceAddr" .) -}}
 {{- $port := .Values.broker.containerPort | int -}}
 {{- printf "BROKER://$(POD_NAME).%s:%d" $serviceAddr $port -}}
 {{- end -}}
@@ -100,7 +112,11 @@ broker.advertisedListeners.external
 broker.config.advertised.listeners
 */}}
 {{- define "broker.config.advertised.listeners" -}}
-{{- printf "%s,%s" (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.external" .) -}}
+{{- $listeners := list (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.broker" .) -}}
+{{- if .Values.broker.external.enabled -}}
+{{- $listeners = append $listeners (include "broker.advertisedListeners.external" .) -}}
+{{- end -}}
+{{- join "," $listeners -}}
 {{- end -}}
 
 {{/*
@@ -129,16 +145,20 @@ broker env
   {{- end }}
 - name: KAFKA_CFG_LISTENERS
   {{- if not .Values.controller.enabled }}
-  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }},CONTROLLER://0.0.0.0:{{ .Values.controller.containerPort }}"
+  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},INTERNAL://0.0.0.0:{{ .Values.broker.internalPort | default 9094 }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }},CONTROLLER://0.0.0.0:{{ .Values.controller.containerPort }}"
   {{- else }}
-  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }}"
+  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},INTERNAL://0.0.0.0:{{ .Values.broker.internalPort | default 9094 }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }}"
   {{- end }}
 - name: KAFKA_CFG_ADVERTISED_LISTENERS
   value: {{ include "broker.config.advertised.listeners" . }}
 - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
-  value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT
+  {{- if .Values.broker.auth.enabled }}
+  value: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+  {{- else }}
+  value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+  {{- end }}
 - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
-  value: BROKER
+  value: INTERNAL
 - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
   value: CONTROLLER
 - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
@@ -164,6 +184,14 @@ broker env
 {{- if .Values.controller.enabled }}
 - name: KAFKA_NODE_ID_OFFSET
   value: "1000"
+{{- end }}
+{{- if .Values.broker.auth.enabled }}
+- name: KAFKA_OPTS
+  value: "-Djava.security.auth.login.config=/etc/kafka/jaas/kafka_server_jaas.conf"
+- name: KAFKA_CFG_SASL_ENABLED_MECHANISMS
+  value: {{ .Values.broker.auth.mechanism | quote }}
+- name: KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL
+  value: {{ .Values.broker.auth.mechanism | quote }}
 {{- end }}
 {{- if .Values.broker.external.enabled -}}
 {{- include "broker.externalEnv" $ | nindent 0 }}
@@ -228,7 +256,7 @@ broker.internal.bootstrapServers
 {{- define "broker.internal.bootstrapServers" -}}
 {{- $brokerFullName := include "kafka.broker.fullname" . -}}
 {{- $domainSuffix := (include "broker.headless.serviceAddr" .) -}}
-{{- $brokerPort := .Values.broker.containerPort | int -}}
+{{- $brokerPort := .Values.broker.internalPort | default 9094 | int -}}
   {{- $servers := list -}}
   {{- $brokerReplicaCount := int .Values.broker.replicaCount -}}
   {{- range $i := until $brokerReplicaCount -}}

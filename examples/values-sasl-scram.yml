@@ -1,0 +1,52 @@
+# Kafka SASL SCRAM 认证配置示例
+# 使用方法: helm install kafka ./charts/kafka -f examples/values-sasl-scram.yml
+
+# 基础配置
+nameOverride: "kafka-sasl"
+fullnameOverride: "kafka-sasl"
+
+# Kafka Broker 配置
+broker:
+  replicaCount: 1
+  
+  # 启用 SASL SCRAM 认证
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
+  
+  # Kafka 配置
+  config:
+    num.partitions: "2"
+    # SASL 相关配置会自动添加
+    
+  # 资源配置
+  resources:
+    limits:
+      cpu: 2
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  # 持久化存储
+  persistence:
+    enabled: true
+    size: 10Gi
+  
+  # 服务配置
+  service:
+    type: ClusterIP
+    port: 9092
+
+# 禁用其他组件（单机版本）
+controller:
+  enabled: false
+
+exporter:
+  enabled: false
+
+ui:
+  enabled: false

@@ -13,7 +13,7 @@ clusterId: "YLlmZWU5YTItYThjNi00Zg"
 image:
   repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.7.1-63ba8d2
+  tag: v4.0.0
 
 rbac:
   create: true
@@ -56,6 +56,15 @@ broker:
   heapOpts: "-Xms1024m -Xmx1024m"
   commonEnvs: []
   extraEnvs: []
+
+  ## SASL SCRAM 认证配置
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    # SASL用户凭据将通过Secret管理
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
 
   ## broker.config - server.properties 配置
   ## 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
@@ -206,7 +215,7 @@ exporter:
   image:
     repository: danielqsj/kafka-exporter
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "v1.9.0"
   podAnnotations:
     prometheus.io/path: "/metrics"
     prometheus.io/port: "9308"
@@ -228,6 +237,15 @@ exporter:
   ## exporter.service
   service:
     annotations: {}
+  
+  # 额外的命令行参数（用于 SASL 认证等）
+  extraArgs: 
+    - "--sasl.enabled"
+    - "--sasl.mechanism=scram-sha256"
+    - "--sasl.username=kafka"
+    - "--sasl.password=Kafka@2025"
+  # 如果不需要SASL认证，可以设置为空数组:
+  # extraArgs: []
 
 ui:
   enabled: false
@@ -250,6 +268,21 @@ ui:
     requests:
       cpu: 50m
       memory: 256Mi
+
+  ## ui.extraEnvs - 额外的环境变量
+  extraEnvs: 
+    # - name: KAFKA_CLUSTERS_0_READONLY
+    #   value: "false"
+    # - name: LOGGING_LEVEL_COM_PROVECTUS
+    #   value: "INFO"
+    
+  # UI认证配置示例 (启用基本用户名密码认证)
+    - name: AUTH_TYPE
+      value: "LOGIN_FORM"
+    - name: SPRING_SECURITY_USER_NAME
+      value: "admin"
+    - name: SPRING_SECURITY_USER_PASSWORD
+      value: "admin"
   
   ## ui.readinessProbe
   readinessProbe:
@@ -267,6 +300,8 @@ ui:
   service:
     annotations: {}
     type: ClusterIP
+    port: 8080
+    # nodePort: 30080  # 仅在type为NodePort时使用
 
   ## ui.ingress
   ingress:

@@ -33,6 +33,10 @@ spec:
       nodePort: {{ .nodePort }}
       {{- end }}
     {{- end }}
+    - name: plaintext
+      port: 9094
+      targetPort: plaintext
+      protocol: TCP
   {{- end }}
   selector:
     {{- include "kafka.selectorLabels" $ | nindent 4 }}

@@ -153,9 +153,17 @@ broker env
   value: {{ include "broker.config.advertised.listeners" . }}
 - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
   {{- if .Values.broker.auth.enabled }}
-  value: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+  {{- if .Values.broker.external.enabled }}
+  value: CONTROLLER:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT,INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
   {{- else }}
+  value: CONTROLLER:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT,INTERNAL:SASL_PLAINTEXT
+  {{- end }}
+  {{- else }}
+  {{- if .Values.broker.external.enabled }}
   value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+  {{- else }}
+  value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,INTERNAL:PLAINTEXT
+  {{- end }}
   {{- end }}
 - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
   value: INTERNAL
@@ -192,6 +200,13 @@ broker env
   value: {{ .Values.broker.auth.mechanism | quote }}
 - name: KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL
   value: {{ .Values.broker.auth.mechanism | quote }}
+- name: KAFKA_CFG_SECURITY_INTER_BROKER_PROTOCOL
+  value: "SASL_PLAINTEXT"
+- name: KAFKA_CFG_CONTROLLER_QUORUM_SASL_MECHANISM
+  value: {{ .Values.broker.auth.mechanism | quote }}
+{{- else }}
+- name: KAFKA_CFG_SECURITY_INTER_BROKER_PROTOCOL
+  value: "PLAINTEXT"
 {{- end }}
 {{- if .Values.broker.external.enabled -}}
 {{- include "broker.externalEnv" $ | nindent 0 }}

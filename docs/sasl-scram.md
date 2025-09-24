@@ -10,6 +10,7 @@ SASL SCRAM (Salted Challenge Response Authentication Mechanism) 是一种安全�
 
 ### 1. 启用 SASL SCRAM 认证
 
+#### Broker 认证配置
 在 `values.yaml` 中添加以下配置：
 
 ```yaml
@@ -20,27 +21,53 @@ broker:
     users:
       - username: "kafka"
         password: "Kafka@2025"
+      - username: "admin"
+        password: "Admin@2025"
+      - username: "client"
+        password: "Client@2025"
 ```
 
-### 2. 自动配置的参数
+#### Controller 认证配置
+同时需要为 Controller 配置认证：
 
-启用 SASL SCRAM 认证后，以下参数会自动配置：
+```yaml
+controller:
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
+      - username: "admin"
+        password: "Admin@2025"
+```
 
-- `sasl.enabled.mechanisms=SCRAM-SHA-256`
-- `sasl.mechanism.inter.broker.protocol=SCRAM-SHA-256`
-- `security.inter.broker.protocol=SASL_PLAINTEXT`
-- `listener.security.protocol.map=CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SASL_PLAINTEXT`
+### 2. 动态配置机制
+
+**重要改进**：从 v2.0 开始，SASL 配置采用动态配置机制，根据 `auth.enabled` 自动设置所有相关参数。
+
+#### 当 `auth.enabled: true` 时，自动配置：
+- `KAFKA_CFG_SECURITY_INTER_BROKER_PROTOCOL=SASL_PLAINTEXT`
+- `KAFKA_CFG_SASL_ENABLED_MECHANISMS=SCRAM-SHA-256`
+- `KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=SCRAM-SHA-256`
+- `KAFKA_CFG_CONTROLLER_QUORUM_SASL_MECHANISM=SCRAM-SHA-256`
+- `KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT,...`
+
+#### 当 `auth.enabled: false` 时，自动配置：
+- `KAFKA_CFG_SECURITY_INTER_BROKER_PROTOCOL=PLAINTEXT`
+- `KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,...`
+- 不设置 SASL 相关参数
 
 ### 3. 监听器端口配置
 
 Kafka 集群配置了以下监听器：
 
-| 监听器名称 | 端口 | 协议 | 用途 | SASL认证 |
-|-----------|------|------|------|----------|
-| CONTROLLER | 9093 | PLAINTEXT | Controller间通信 | 否 |
-| BROKER | 9092 | SASL_PLAINTEXT | 客户端连接 | 是 |
-| INTERNAL | 9094 | PLAINTEXT | Broker间通信 | 否 |
-| EXTERNAL | 9095 | SASL_PLAINTEXT | 外部客户端连接 | 是 |
+| 监听器名称 | 端口 | 协议 (auth.enabled=true) | 协议 (auth.enabled=false) | 用途 |
+|-----------|------|-------------------------|---------------------------|------|
+| CONTROLLER | 9093 | SASL_PLAINTEXT | PLAINTEXT | Controller间通信 |
+| BROKER | 9092 | SASL_PLAINTEXT | PLAINTEXT | 客户端连接 |
+| INTERNAL | 9094 | SASL_PLAINTEXT | PLAINTEXT | Broker间通信 |
+| EXTERNAL | 9095 | SASL_PLAINTEXT | PLAINTEXT | 外部客户端连接 |
 
 ### 4. Advertised Listeners 配置
 
@@ -74,6 +101,77 @@ broker:
 4. **Controller 通信**：CONTROLLER 监听器用于 controller 间通信，无需认证
 
 **注意**：确保客户端使用正确的端口和协议进行连接，避免 "no matching listener" 错误。
+
+## 配置最佳实践
+
+### 1. 开发环境 vs 生产环境
+
+#### 开发环境配置
+```yaml
+# 简化配置，无认证
+broker:
+  auth:
+    enabled: false
+controller:
+  auth:
+    enabled: false
+```
+
+#### 生产环境配置
+```yaml
+# 启用完整认证
+broker:
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    users:
+      - username: "kafka"
+        password: "StrongPassword123!"
+      - username: "admin"
+        password: "AdminPassword456!"
+controller:
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    users:
+      - username: "kafka"
+        password: "StrongPassword123!"
+```
+
+### 2. 配置迁移指南
+
+#### 从旧版本迁移
+如果你使用的是旧版本的配置（在 `broker.config` 中硬编码 SASL 配置），需要进行以下迁移：
+
+**旧配置（不推荐）**：
+```yaml
+broker:
+  config:
+    security.inter.broker.protocol: "SASL_PLAINTEXT"
+    sasl.mechanism.inter.broker.protocol: "SCRAM-SHA-256"
+    # ... 其他硬编码配置
+```
+
+**新配置（推荐）**：
+```yaml
+broker:
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+  config:
+    # 移除所有 SASL 相关的硬编码配置
+    # 系统会根据 auth.enabled 自动配置
+```
+
+#### 迁移步骤
+1. 备份当前配置
+2. 移除 `broker.config` 中的 SASL 相关配置
+3. 添加 `broker.auth` 和 `controller.auth` 配置
+4. 重新部署并验证
+
+### 3. 无认证配置示例
+
+参考 <mcfile name="values-no-auth.yml" path="examples/values-no-auth.yml"></mcfile> 文件，了解如何正确配置无认证环境。
 
 ## 部署步骤
 

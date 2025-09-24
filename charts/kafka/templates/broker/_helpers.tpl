@@ -15,6 +15,9 @@ broker.containerPorts
   {{- end }}
 {{- end }}
 {{- end }}
+- containerPort: 9094
+  name: plaintext
+  protocol: TCP
 {{- if not .Values.controller.enabled }}
 - containerPort: {{ .Values.controller.containerPort }}
   name: controller
@@ -83,8 +86,10 @@ broker.advertisedListeners.external
 {{- $addr := "$(POD_IP)" -}}
 {{- $port := .Values.broker.external.containerPort | int -}}
 {{- with .Values.broker.external -}}
+{{- if .enabled -}}
 {{- if eq .type "NodePort" -}}
   {{- $addr = "$(POD_HOST_IP)" -}}
+  {{- $port = "9999" -}}
 {{- else if eq .type "HostPort" -}}
   {{- $addr = "$(POD_HOST_IP)" -}}
   {{- $port = .hostPort | default .containerPort -}}
@@ -93,14 +98,27 @@ broker.advertisedListeners.external
   {{- $addr = printf "$(POD_NAME).%s.%s" (include "broker.externalDns.hostnamePrefix" $) (include "broker.externalDns.domain" $) -}}
 {{- end -}}
 {{- end -}}
-{{- printf "EXTERNAL://%s:%d" $addr ($port | int) -}}
+{{- end -}}
+{{- printf "EXTERNAL://%s:%s" $addr $port -}}
+{{- end -}}
+
+{{/*
+broker.advertisedListeners.plaintext
+*/}}
+{{- define "broker.advertisedListeners.plaintext" -}}
+{{- $serviceAddr := (include "broker.headless.serviceAddr" .) -}}
+{{- printf "PLAINTEXT://$(POD_NAME).%s:9094" $serviceAddr -}}
 {{- end -}}
 
 {{/*
 broker.config.advertised.listeners
 */}}
 {{- define "broker.config.advertised.listeners" -}}
-{{- printf "%s,%s" (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.external" .) -}}
+{{- if .Values.broker.external.enabled -}}
+{{- printf "%s,%s,%s" (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.external" .) (include "broker.advertisedListeners.plaintext" .) -}}
+{{- else -}}
+{{- printf "%s,%s" (include "broker.advertisedListeners.internal" .) (include "broker.advertisedListeners.plaintext" .) -}}
+{{- end -}}
 {{- end -}}
 
 {{/*
@@ -119,6 +137,7 @@ broker env
   valueFrom:
     fieldRef:
       fieldPath: metadata.name
+
 - name: KAFKA_HEAP_OPTS
   value: {{ .Values.broker.heapOpts | quote }}
 - name: KAFKA_CFG_PROCESS_ROLES
@@ -129,16 +148,32 @@ broker env
   {{- end }}
 - name: KAFKA_CFG_LISTENERS
   {{- if not .Values.controller.enabled }}
-  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }},CONTROLLER://0.0.0.0:{{ .Values.controller.containerPort }}"
+  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }},CONTROLLER://0.0.0.0:{{ .Values.controller.containerPort }},PLAINTEXT://0.0.0.0:9094"
   {{- else }}
-  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }}"
+  value: "BROKER://0.0.0.0:{{ .Values.broker.containerPort }},EXTERNAL://0.0.0.0:{{ .Values.broker.external.containerPort }},PLAINTEXT://0.0.0.0:9094"
   {{- end }}
 - name: KAFKA_CFG_ADVERTISED_LISTENERS
   value: {{ include "broker.config.advertised.listeners" . }}
 - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
-  value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT
+  {{- if .Values.broker.auth.enabled }}
+  {{- if .Values.broker.external.enabled }}
+  value: CONTROLLER:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT,PLAINTEXT:PLAINTEXT
+  {{- else }}
+  value: CONTROLLER:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT,PLAINTEXT:PLAINTEXT
+  {{- end }}
+  {{- else }}
+  {{- if .Values.broker.external.enabled }}
+  value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+  {{- else }}
+  value: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+  {{- end }}
+  {{- end }}
 - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+  {{- if .Values.broker.auth.enabled }}
   value: BROKER
+  {{- else }}
+  value: BROKER
+  {{- end }}
 - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
   value: CONTROLLER
 - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
@@ -164,6 +199,21 @@ broker env
 {{- if .Values.controller.enabled }}
 - name: KAFKA_NODE_ID_OFFSET
   value: "1000"
+{{- end }}
+{{- if .Values.broker.auth.enabled }}
+- name: KAFKA_OPTS
+  value: "-Djava.security.auth.login.config=/etc/kafka/jaas/kafka_server_jaas.conf"
+- name: KAFKA_CFG_SASL_ENABLED_MECHANISMS
+  value: {{ .Values.broker.auth.mechanism | quote }}
+- name: KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL
+  value: {{ .Values.broker.auth.mechanism | quote }}
+- name: KAFKA_CFG_SECURITY_INTER_BROKER_PROTOCOL
+  value: "SASL_PLAINTEXT"
+- name: KAFKA_CFG_CONTROLLER_QUORUM_SASL_MECHANISM
+  value: {{ .Values.broker.auth.mechanism | quote }}
+{{- else }}
+- name: KAFKA_CFG_SECURITY_INTER_BROKER_PROTOCOL
+  value: "PLAINTEXT"
 {{- end }}
 {{- if .Values.broker.external.enabled -}}
 {{- include "broker.externalEnv" $ | nindent 0 }}
@@ -199,6 +249,14 @@ broker.externalEnv
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+broker.external.nodePort
+*/}}
+{{- define "broker.external.nodePort" -}}
+{{- $fullNodePorts := include "broker.fullNodePorts" . -}}
+{{- printf "$(echo '%s' | cut -d',' -f$(($(echo $POD_NAME | sed 's/.*-//')+1)))" $fullNodePorts -}}
+{{- end -}}
 
 {{/*
 broker.fullNodePorts

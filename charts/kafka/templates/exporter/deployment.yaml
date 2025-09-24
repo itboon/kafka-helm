@@ -40,9 +40,12 @@ spec:
         {{- $imageTag := .image.tag | default "latest" }}
         image: {{ printf "%s:%s" .image.repository $imageTag }}
         imagePullPolicy: {{ .image.pullPolicy }}
-        {{- $brokerServicePort := $.Values.broker.service.port | default $.Values.broker.containerPort | int }}
+        {{- $brokerServicePort := $.Values.broker.containerPort | int }}
         args:
           - {{ printf "--kafka.server=%s:%d" (include "kafka.broker.fullname" $) (int $brokerServicePort) }}
+          {{- with .extraArgs }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
         ports:
           - containerPort: 9308
             name: {{ .containerPortName | default "http-metrics"}}

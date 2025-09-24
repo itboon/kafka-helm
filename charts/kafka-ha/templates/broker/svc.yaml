@@ -24,6 +24,10 @@ spec:
       port: {{ $.Values.broker.containerPort }}
       targetPort: broker
       protocol: TCP
+    - name: internal
+      port: {{ $.Values.broker.internalPort | default 9094 }}
+      targetPort: internal
+      protocol: TCP
     {{- if $.Values.broker.external.enabled }}
     - name: external
       port: {{ $.Values.broker.external.containerPort }}

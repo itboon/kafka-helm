@@ -1,0 +1,23 @@
+{{- if .Values.broker.auth.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kafka.broker.fullname" . }}-jaas
+  namespace: {{ include "kafka.namespace" $ }}
+  labels:
+    {{- include "kafka.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: broker
+data:
+  kafka_server_jaas.conf: |
+    KafkaServer {
+      org.apache.kafka.common.security.scram.ScramLoginModule required
+      username="{{ (index .Values.broker.auth.users 0).username }}"
+      password="{{ (index .Values.broker.auth.users 0).password }}";
+    };
+    
+    Client {
+      org.apache.kafka.common.security.scram.ScramLoginModule required
+      username="{{ (index .Values.broker.auth.users 0).username }}"
+      password="{{ (index .Values.broker.auth.users 0).password }}";
+    };
+{{- end }}

@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-broker1
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: 
+  claimRef:
+    name: data-kafka-ha-broker-0
+    namespace: default
+  local:
+    path: /data/broker
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - master01
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-broker2
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName:
+  claimRef:
+    name: data-kafka-ha-broker-1
+    namespace: default
+  local:
+    path: /data/broker
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - master02
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-broker3
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: 
+  claimRef:
+    name: data-kafka-ha-broker-2
+    namespace: default
+  local:
+    path: /data/broker
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - master03

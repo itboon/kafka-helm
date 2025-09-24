@@ -10,7 +10,7 @@ clusterId: "YLlmZWU5YTItYThjNi00Zg"
 image:
   repository: kafkace/kafka
   pullPolicy: IfNotPresent
-  tag: v3.7.1-63ba8d2
+  tag: v4.0.0
 rbac:
   create: true
 serviceAccount:
@@ -44,18 +44,41 @@ global:
 broker:
   replicaCount: 3
   containerPort: 9092
+  # Internal communication port for broker-to-broker communication (plaintext)
+  internalPort: 9094
   terminationGracePeriodSeconds: 60
   heapOpts: "-Xms1024m -Xmx1024m"
   commonEnvs: []
   extraEnvs: []
+
+  ## SASL SCRAM 认证配置
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    # SASL用户凭据将通过Secret管理
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
+      - username: "admin"
+        password: "Admin@2025"
+      - username: "client"
+        password: "Client@2025"
+
   ## broker.config - server.properties 配置
   ## 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
+  ## SASL相关配置将根据auth.enabled动态生成，无需在此处硬编码
   config:
     num.partitions: "6"
     # default.replication.factor: "1"
     # min.insync.replicas: "1"
 
     default.replication.factor: "3"
+    # 注意：以下SASL配置已移至模板中动态生成，根据auth.enabled自动配置
+    # security.inter.broker.protocol: 将根据auth.enabled动态设置为"SASL_PLAINTEXT"或"PLAINTEXT"
+    # sasl.mechanism.inter.broker.protocol: 将根据auth.mechanism动态设置
+    # controller.quorum.sasl.mechanism: 将根据auth.mechanism动态设置
+    # listener.security.protocol.map: 将根据auth.enabled和external.enabled动态设置
+    # sasl.enabled.mechanisms: 将根据auth.mechanism动态设置
   ## broker.persistence
   persistence:
     enabled: true
@@ -130,6 +153,23 @@ controller:
   heapOpts: "-Xms512m -Xmx512m"
   commonEnvs: []
   extraEnvs: []
+  
+  ## SASL SCRAM 认证配置 (与broker共享)
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
+      - username: "admin"
+        password: "Admin@2025"
+      - username: "client"
+        password: "Client@2025"
+  
+  ## controller.labels
+  labels: {}
+  ## controller.annotations  
+  annotations: {}
   persistence:
     enabled: true
     size: 20Gi
@@ -164,6 +204,8 @@ controller:
   tolerations: []
   ## controller.podAnnotations
   podAnnotations: {}
+  ## controller.podLabels
+  podLabels: {}
   ## controller.antiAffinity
   antiAffinity: soft
   antiAffinityTopologyKey: kubernetes.io/hostname
@@ -201,6 +243,16 @@ exporter:
   ## exporter.service
   service:
     annotations: {}
+  
+  # 额外的命令行参数（用于 SASL 认证等）
+  extraArgs: 
+    - "--sasl.enabled"
+    - "--sasl.mechanism=scram-sha256"
+    - "--sasl.username=kafka"
+    - "--sasl.password=Kafka@2025"
+  # 如果不需要SASL认证，可以设置为空数组:
+  # extraArgs: []
+
 ui:
   enabled: false
   replicaCount: 1
@@ -221,6 +273,20 @@ ui:
     requests:
       cpu: 50m
       memory: 256Mi
+  ## ui.extraEnvs - 额外的环境变量配置
+  extraEnvs: 
+  # 示例：
+  # extraEnvs:
+  #   - name: KAFKA_CLUSTERS_0_READONLY
+  #     value: "false"
+  
+  # UI认证配置示例 (启用基本用户名密码认证)
+    - name: AUTH_TYPE
+      value: "LOGIN_FORM"
+    - name: SPRING_SECURITY_USER_NAME
+      value: "admin"
+    - name: SPRING_SECURITY_USER_PASSWORD
+      value: "admin"
   ## ui.readinessProbe
   readinessProbe:
     httpGet:
@@ -236,6 +302,8 @@ ui:
   service:
     annotations: {}
     type: ClusterIP
+    port: 8080
+    # nodePort: 30080  # 仅在type为NodePort时使用
   ## ui.ingress
   ingress:
     enabled: false

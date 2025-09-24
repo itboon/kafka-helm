@@ -98,6 +98,80 @@ broker:
 
 > `broker.config` 某些关键配置会被环境变量覆盖，例如: node.id advertised.listeners controller.quorum.voters 等
 
+## 认证配置
+
+### SASL SCRAM 认证
+
+#### 启用认证的高可用集群
+```shell
+# 部署启用 SASL SCRAM 认证的高可用集群
+helm upgrade --install kafka \
+  --namespace kafka-demo \
+  --create-namespace \
+  --set broker.auth.enabled=true \
+  --set broker.auth.mechanism="SCRAM-SHA-256" \
+  --set controller.auth.enabled=true \
+  --set controller.auth.mechanism="SCRAM-SHA-256" \
+  kafka-repo/kafka-ha
+```
+
+#### 使用配置文件部署
+```shell
+# 使用预配置的 SASL SCRAM 配置文件
+helm upgrade --install kafka \
+  --namespace kafka-demo \
+  --create-namespace \
+  -f examples/values-sasl-scram.yml \
+  kafka-repo/kafka-ha
+```
+
+#### 开发环境（无认证）
+```shell
+# 开发环境部署，关闭认证
+helm upgrade --install kafka \
+  --namespace kafka-demo \
+  --create-namespace \
+  --set broker.auth.enabled=false \
+  --set controller.auth.enabled=false \
+  kafka-repo/kafka-ha
+```
+
+### 认证配置说明
+
+```yaml
+# 启用认证
+broker:
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
+      - username: "admin"
+        password: "Admin@2025"
+
+controller:
+  auth:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    users:
+      - username: "kafka"
+        password: "Kafka@2025"
+```
+
+```yaml
+# 关闭认证（开发环境）
+broker:
+  auth:
+    enabled: false
+
+controller:
+  auth:
+    enabled: false
+```
+
+> 详细的认证配置请参考 [SASL SCRAM 认证配置指南](sasl-scram.md)
+
 ## 集群外访问
 
 ```yaml

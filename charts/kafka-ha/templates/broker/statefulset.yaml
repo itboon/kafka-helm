@@ -74,7 +74,7 @@ spec:
             command:
             - sh
             - -c
-            - bin/kafka-broker-api-versions.sh --bootstrap-server=127.0.0.1:{{ $.Values.broker.containerPort }}
+            - bin/kafka-broker-api-versions.sh --bootstrap-server=127.0.0.1:{{ $.Values.broker.internalPort | default 9094 }}
         {{- with .readinessProbe }}
           {{- toYaml . | nindent 10 }}
         {{- end }}
@@ -98,6 +98,15 @@ spec:
         - mountPath: /entrypoint.sh
           name: entrypoint-sh
           subPath: entrypoint.sh
+        {{- if $.Values.broker.auth.enabled }}
+        - mountPath: /opt/kafka/config/client.properties
+          name: client-config
+          subPath: client.properties
+        {{- end }}
+        {{- if $.Values.broker.auth.enabled }}
+        - mountPath: "/etc/kafka/jaas"
+          name: jaas-config
+        {{- end }}
         {{- if eq (include "broker.external.autoDiscovery.enabled" $) "true" }}
         - name: auto-discovery-shared
           mountPath: /init-shared
@@ -118,6 +127,16 @@ spec:
             path: entrypoint.sh
           name: {{ include "kafka.entrypoint.configmapName" $ }}
           defaultMode: 0744
+      {{- if $.Values.broker.auth.enabled }}
+      - name: jaas-config
+        configMap:
+          name: {{ include "kafka.broker.fullname" $ }}-jaas
+          defaultMode: 0644
+      - name: client-config
+        configMap:
+          name: kafka-client-sasl-config
+          defaultMode: 0644
+      {{- end }}
       {{- if eq (include "broker.external.autoDiscovery.enabled" $) "true" }}
       - name: auto-discovery-shared
         emptyDir: {}

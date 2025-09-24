@@ -81,7 +81,7 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         volumeMounts:
-        - mountPath: /opt/kafka/data
+        - mountPath: /var/lib/kafka/data
           name: data
           subPath: data
         - mountPath: /opt/kafka/logs
@@ -90,6 +90,10 @@ spec:
         - mountPath: /entrypoint.sh
           name: entrypoint-sh
           subPath: entrypoint.sh
+        {{- if $.Values.controller.auth.enabled }}
+        - mountPath: "/etc/kafka/jaas"
+          name: jaas-config
+        {{- end }}
         lifecycle:
           preStop:
             exec:
@@ -103,6 +107,12 @@ spec:
             path: entrypoint.sh
           name: {{ include "kafka.entrypoint.configmapName" $ }}
           defaultMode: 0744
+      {{- if $.Values.controller.auth.enabled }}
+      - name: jaas-config
+        configMap:
+          name: {{ include "kafka.controller.fullname" $ }}-jaas
+          defaultMode: 0644
+      {{- end }}
   {{- if not .persistence.enabled }}
       - name: data
         emptyDir: {}

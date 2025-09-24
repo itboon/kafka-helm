@@ -17,6 +17,19 @@ controller.containerEnv
   value: CONTROLLER
 - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
   value: {{ include "kafka.controller.quorum.voters" . }}
+{{- if .Values.controller.auth.enabled }}
+- name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+  value: CONTROLLER:SASL_PLAINTEXT
+- name: KAFKA_OPTS
+  value: "-Djava.security.auth.login.config=/etc/kafka/jaas/kafka_server_jaas.conf"
+- name: KAFKA_CFG_SASL_ENABLED_MECHANISMS
+  value: {{ .Values.controller.auth.mechanism | quote }}
+- name: KAFKA_CFG_SASL_MECHANISM_CONTROLLER_PROTOCOL
+  value: {{ .Values.controller.auth.mechanism | quote }}
+{{- else }}
+- name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+  value: CONTROLLER:PLAINTEXT
+{{- end }}
 - name: KAFKA_CLUSTER_ID
   valueFrom:
     secretKeyRef:
